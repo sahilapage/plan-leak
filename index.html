@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<style>img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Plans Are Not Interventions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Driving world models read other cars' motion off the plan. A leak test, what it costs, and how to repair it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Tinos:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one 960px reading column on white, fixed mono section index at left, figures break out to a wider band.
+   Deliberately single light look (same family as the authors' other project page); every colour is a token. */
+:root {
+  --page: #ffffff;
+  --ink: #1b1b1b;
+  --ink-2: #444444;
+  --ink-3: #737373;
+  --caption: #3a3025;
+  --rule: #e6e2d8;
+  --grid: #ececec;
+  --well: #f6f6f4;
+  --pill: #ede0c5;
+  --leak: #b94a3a;      /* the leaky model / the crashing plan */
+  --leak-soft: #ecd3cd;
+  --causal: #2c5b94;    /* causal conditioning / the repair */
+  --causal-soft: #d2deec;
+  --stone: #c9c3b6;     /* logged plan, controls */
+  --serif: 'Times New Roman', Times, Tinos, 'Liberation Serif', serif;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: Helvetica, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: light;
+}
+html { background: var(--page); scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { background: var(--page); color: var(--ink); font-family: var(--serif); padding-left: max(30px, env(safe-area-inset-left, 0px)); padding-right: max(30px, env(safe-area-inset-right, 0px)); padding-block: 60px; margin: 0; }
+.main { max-width: 960px; margin: 0 auto; }
+a { color: var(--ink); }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--causal); outline-offset: 2px; }
+
+.side-nav { position: fixed; top: 40px; left: calc(32px + env(safe-area-inset-left, 0px)); font-family: var(--mono); font-size: 13px; z-index: 10; }
+.side-nav ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.side-nav a { color: var(--ink-3); text-decoration: none; font-weight: 300; border-left: 1px solid transparent; padding-left: 10px; transition: color .2s, border-color .2s; display: block; }
+.side-nav a:hover, .side-nav a.active { color: var(--ink); border-left-color: var(--ink); font-weight: 400; }
+@media (max-width: 1280px) { .side-nav { display: none; } }
+
+.hero-text { font-size: 52px; font-weight: 700; letter-spacing: -1px; line-height: 1.12; margin: 0 0 28px; text-wrap: balance; }
+.hero-text .sub { display: block; font-weight: 400; font-size: .62em; letter-spacing: -.4px; margin-top: 10px; color: var(--ink-2); }
+.authors { font-family: var(--sans); line-height: 1.6; margin: 0 0 36px; }
+.authors p { margin: 0; }
+.author-list { font-size: 15px; color: var(--ink); margin-bottom: 4px !important; }
+.author-list .name { font-weight: 700; white-space: nowrap; }
+.authors sup { font-size: 10px; font-weight: 400; color: var(--ink-3); margin-left: 1px; }
+.affiliation-list { font-size: 13px; color: var(--ink-2); }
+
+/* synchronized video pairs and triples */
+.vgrid { display: grid; gap: 2px; background: #000; position: relative; }
+.vgrid.n2 { grid-template-columns: 1fr 1fr; }
+.vgrid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 640px) { .vgrid.n3 { grid-template-columns: 1fr; } }
+.stage { position: relative; line-height: 0; background: #000; overflow: hidden; min-width: 0; }
+.stage video { width: 100%; aspect-ratio: 604 / 332; object-fit: cover; display: block; max-width: 100%; }
+.n3 .stage video { aspect-ratio: 376 / 208; }
+.badge { position: absolute; top: 8px; left: 8px; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: .5px; color: #fff; background: rgba(0,0,0,.62); padding: 3px 7px; border-radius: 3px; text-transform: uppercase; line-height: 1.2; pointer-events: none; }
+.badge.leak { background: var(--leak); } .badge.causal { background: var(--causal); }
+.controls { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px; display: flex; align-items: center; gap: 12px; background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0)); font-family: var(--mono); color: #fff; opacity: 0; transition: opacity .2s; }
+.vgrid:hover .controls, .controls:focus-within { opacity: 1; }
+@media (hover: none) { .controls { opacity: 1; } }
+.cbtn { background: none; border: 0; color: #fff; cursor: pointer; padding: 5px 7px; border-radius: 4px; font: 500 11px var(--mono); letter-spacing: .5px; }
+.cbtn:hover { background: rgba(255,255,255,.15); }
+.progress { flex: 1; height: 3px; background: rgba(255,255,255,.25); border-radius: 2px; position: relative; }
+.progress i { position: absolute; left: 0; top: 0; bottom: 0; background: #fff; border-radius: 2px; width: 0; }
+.road { margin-top: 2px; background: var(--well); }
+.road svg { display: block; width: 100%; height: auto; }
+.teaser-caption { font-family: var(--mono); font-size: 13px; line-height: 1.5; color: var(--ink-2); text-align: center; margin: 10px auto 0; max-width: 860px; }
+
+.link-row { font-family: var(--sans); font-size: 16px; text-align: center; margin: 26px 0 44px; color: var(--ink-3); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 36px; }
+.link-row .soon { border-bottom: 1px solid var(--stone); padding-bottom: 2px; white-space: nowrap; }
+.link-row .soon em { font-style: normal; font-family: var(--mono); font-size: 12px; margin-left: 6px; }
+
+/* overview strip */
+.overview { margin: 0 0 50px; }
+.ov-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.ov-cell { margin: 0; display: flex; flex-direction: column; min-width: 0; }
+.ov-head { font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 10px; line-height: 1.2; }
+.ov-visual { width: 100%; aspect-ratio: 4 / 3; background: var(--well); overflow: hidden; max-width: 100%; position: relative; }
+.ov-visual svg { width: 100%; height: 100%; display: block; }
+.ov-cell figcaption { font-family: var(--mono); font-size: 13px; line-height: 1.45; color: var(--ink-2); margin-top: 12px; text-align: center; }
+.caption { font-style: italic; font-size: 16px; line-height: 1.55; color: var(--caption); margin: 22px auto 0; max-width: 800px; text-align: center; }
+.caption strong { font-style: normal; font-weight: 700; color: var(--ink); }
+
+.tagline { margin: 72px 0 26px; font-size: 44px; font-weight: 700; letter-spacing: -.6px; line-height: 1.1; text-wrap: balance; scroll-margin-top: 24px; }
+.subtagline { font-family: var(--mono); font-size: 20px; font-weight: 500; margin: 40px 0 14px; letter-spacing: .2px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.pill { font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: .5px; background: var(--pill); padding: 3px 10px; border-radius: 999px; line-height: 1.4; }
+.section { font-size: 20px; line-height: 1.7; margin: 0 0 30px; }
+.section p { margin: 0 0 18px; }
+.section p:last-child { margin-bottom: 0; }
+.eq { font-family: var(--mono); font-size: .8em; white-space: nowrap; }
+
+.fig { margin: 0 0 44px; padding: 0; }
+.fig > figcaption { max-width: 860px; margin-left: auto; margin-right: auto; font-style: italic; font-size: 16px; line-height: 1.5; color: var(--caption); margin-top: 14px; text-align: center; }
+.fig > figcaption strong { font-style: normal; font-weight: 700; color: var(--ink); }
+.chart { width: 100%; min-width: 0; }
+.chart svg { display: block; overflow: visible; }
+.wide { width: min(1240px, calc(100vw - 380px)); position: relative; left: 50%; transform: translateX(-50%); }
+@media (max-width: 1280px) { .wide { width: 100%; left: auto; transform: none; } }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; gap: 34px; } }
+.two > * { min-width: 0; }
+.chart-title { font-family: var(--mono); font-size: 13px; color: var(--ink-2); text-align: center; margin: 0 0 6px; }
+
+.tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 12px; }
+.tbtn { font: 500 12px var(--mono); letter-spacing: .4px; color: var(--ink); background: var(--page); border: 1px solid var(--stone); padding: 5px 12px; border-radius: 3px; cursor: pointer; }
+.tbtn:hover { border-color: var(--ink); }
+.tbtn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.scene-pick { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; margin: 0 0 14px; }
+@media (max-width: 760px) { .scene-pick { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.scene-pick .tbtn { padding: 5px 4px; font-size: 11px; white-space: nowrap; }
+.scene-pick .tbtn .st { color: var(--leak); margin-left: 3px; }
+.scene-pick .tbtn[aria-pressed="true"] .st { color: var(--pill); }
+.readout { font-family: var(--mono); font-size: 13px; color: var(--ink-2); text-align: center; margin: 10px 0 0; line-height: 1.6; }
+.readout b { color: var(--ink); font-weight: 500; }
+
+.slider-row { display: flex; align-items: center; gap: 14px; justify-content: center; font-family: var(--mono); font-size: 13px; color: var(--ink-2); margin: 0 0 8px; flex-wrap: wrap; }
+.slider-row input[type="range"] { width: min(360px, 70vw); accent-color: var(--ink); }
+.slider-row output { font-weight: 500; color: var(--ink); min-width: 3.5em; font-variant-numeric: tabular-nums; }
+
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin: 0 0 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 11px; height: 11px; display: inline-block; }
+.sw.leak { background: var(--leak); } .sw.causal { background: var(--causal); } .sw.ink { background: var(--ink); } .sw.stone { background: var(--stone); }
+.ln { width: 18px; height: 0; display: inline-block; border-top: 2px solid var(--ink); }
+.ln.leak { border-color: var(--leak); } .ln.causal { border-color: var(--causal); } .ln.stone { border-color: var(--stone); }
+.ln.dash { border-top-style: dashed; }
+
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); margin: 0 0 40px; }
+.fact { padding: 18px 18px 20px 0; min-width: 0; }
+.fact + .fact { padding-left: 18px; border-left: 1px solid var(--rule); }
+.fact b { display: block; font-family: var(--mono); font-weight: 500; font-size: 30px; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.fact span { display: block; font-size: 16px; line-height: 1.45; color: var(--ink-2); margin-top: 6px; }
+@media (max-width: 700px) { .facts { grid-template-columns: 1fr; } .fact + .fact { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); } }
+
+.takeaways { list-style: none; counter-reset: t; padding: 0; margin: 26px 0 0; display: grid; gap: 14px; }
+.takeaways li { counter-increment: t; display: grid; grid-template-columns: 46px 1fr; font-size: 19px; line-height: 1.6; }
+.takeaways li::before { content: "(" counter(t) ")"; font-family: var(--mono); font-size: 13px; color: var(--ink-3); padding-top: 4px; }
+
+.spec { display: grid; grid-template-columns: 170px minmax(0, 1fr); border-top: 1px solid var(--ink); margin: 0 0 30px; }
+.spec dt, .spec dd { padding: 13px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+.spec dt { font: 500 12px var(--mono); letter-spacing: .6px; text-transform: uppercase; color: var(--ink-3); padding-top: 17px; }
+.spec dd { font-size: 18px; line-height: 1.55; min-width: 0; }
+@media (max-width: 600px) { .spec { grid-template-columns: 1fr; } .spec dt { border-bottom: 0; padding-bottom: 0; } }
+.counts { font-family: var(--mono); font-size: 14px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 30px; }
+.counts b { color: var(--ink); font-weight: 500; }
+
+.bib { position: relative; }
+.bib pre { font: 13px/1.6 var(--mono); background: var(--well); color: var(--ink); padding: 18px 20px; margin: 0; overflow-x: auto; border-left: 2px solid var(--ink); }
+.bib .tbtn { position: absolute; top: 10px; right: 10px; }
+
+.end { margin: 70px 0 10px; padding-top: 24px; border-top: 1px solid var(--rule); text-align: center; }
+.end p { font-style: italic; font-size: 16px; color: #6e6555; margin: 0; }
+.end small { display: block; font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-top: 8px; letter-spacing: .3px; }
+
+#tip { position: fixed; z-index: 50; pointer-events: none; font: 12px/1.45 var(--mono); color: #fff; background: rgba(20,20,20,.92); padding: 7px 10px; border-radius: 3px; max-width: 280px; opacity: 0; transition: opacity .08s; }
+#tip b { font-weight: 600; }
+
+@media (max-width: 900px) {
+  body { padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); padding-block: 40px; }
+  .hero-text { font-size: 40px; letter-spacing: -.5px; }
+  .tagline { font-size: 34px; }
+  .section { font-size: 18px; }
+  .subtagline { font-size: 17px; }
+  .ov-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+}
+@media (max-width: 600px) {
+  body { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px; }
+  .hero-text { font-size: 30px; line-height: 1.18; }
+  .tagline { font-size: 28px; margin-top: 56px; }
+  .section { font-size: 17px; line-height: 1.65; }
+  .subtagline { font-size: 15px; }
+  .ov-grid { gap: 12px; }
+  .ov-head { font-size: 17px; }
+  .ov-cell figcaption { font-size: 12px; }
+  .caption, .fig > figcaption { font-size: 15px; }
+  .takeaways li { font-size: 17px; grid-template-columns: 34px 1fr; }
+}
+</style>
+</head>
+<body>
+<nav class="side-nav" aria-label="Sections">
+  <ul>
+    <li><a href="#abstract">Abstract</a></li>
+    <li><a href="#leak">The plan leak</a></li>
+    <li><a href="#omninwm">OmniNWM</a></li>
+    <li><a href="#models">Other models</a></li>
+    <li><a href="#cause">Cause</a></li>
+    <li><a href="#cost">Cost</a></li>
+    <li><a href="#repair">Repair</a></li>
+    <li><a href="#recommendations">Recommendations</a></li>
+    <li><a href="#method">Method</a></li>
+    <li><a href="#citation">Citation</a></li>
+  </ul>
+</nav>
+
+<div class="main">
+  <h1 class="hero-text">Plans Are Not Interventions<span class="sub">Measuring and repairing plan leakage in driving world models</span></h1>
+  <div class="authors">
+    <p class="author-list"><span class="name">Sahil Apage<sup>1</sup></span>, <span class="name">Medhansh Abhilash<sup>1</sup></span></p>
+    <p class="affiliation-list"><sup>1</sup>Veermata Jijabai Technological Institute (VJTI), Mumbai</p>
+  </div>
+
+  <div class="vgrid n2" id="hero">
+    <div class="stage"><video src="assets/v/scene-0780_ad26_plan.mp4" muted playsinline preload="auto" aria-label="OmniNWM's generated front camera for a plan that drives into the stopped car ahead"></video><span class="badge leak">OmniNWM · crashing plan</span></div>
+    <div class="stage"><video src="assets/v/scene-0780_ad26_repair.mp4" muted playsinline preload="auto" aria-label="The repaired world for the same plan, seen from the same cameras"></video><span class="badge causal">Repaired · same plan</span></div>
+    <div class="controls">
+      <button class="cbtn" data-act="play" type="button">Pause</button>
+      <div class="progress" aria-hidden="true"><i></i></div>
+      <button class="cbtn" data-act="speed" type="button">1×</button>
+    </div>
+  </div>
+  <div class="road" id="hero-road"></div>
+  <p class="teaser-caption">The plan accelerates into a car stopped at a red light. OmniNWM keeps that car ahead of the ego, so the crash never appears. The repaired world, seen from the same cameras, puts the car back. Bird's-eye strip: where each world places the car, against the real one. Held-out nuScenes, released weights, half speed.</p>
+
+  <p class="link-row"><span class="soon">Paper<em>coming soon</em></span><span class="soon">Code<em>coming soon</em></span><span class="soon">Videos<em>all 18 scenes below</em></span></p>
+
+  <figure class="overview">
+    <div class="ov-grid">
+      <figure class="ov-cell">
+        <div class="ov-head">Two questions</div>
+        <div class="ov-visual"><svg id="ov-q" role="img" aria-label="A planner asks p of future given do(plan); a model trained on logs answers p of future given plan"></svg></div>
+        <figcaption>A planner needs p(future | do(plan)). Logs teach p(future | plan).</figcaption>
+      </figure>
+      <figure class="ov-cell">
+        <div class="ov-head">A leak test</div>
+        <div class="ov-visual"><svg id="ov-test" role="img" aria-label="Change only the plan and measure how far the car ahead moves"></svg></div>
+        <figcaption>Change only the plan. Cars that cannot react should stay put.</figcaption>
+      </figure>
+      <figure class="ov-cell">
+        <div class="ov-head">The finding</div>
+        <div class="ov-visual"><svg id="ov-find" role="img" aria-label="Plan leak of OmniNWM: car ahead 1.02, parked cars 0.23"></svg></div>
+        <figcaption>OmniNWM moves the car ahead metre for metre with the plan.</figcaption>
+      </figure>
+      <figure class="ov-cell">
+        <div class="ov-head">A repair</div>
+        <div class="ov-visual"><svg id="ov-fix" role="img" aria-label="Crashes caught after the repair"></svg></div>
+        <figcaption id="ov-fix-cap">Past-only queries bring the crash back.</figcaption>
+      </figure>
+    </div>
+    <figcaption class="caption"><strong>What this work measures.</strong> World models are used to judge driving plans and to train policies. We test whether they answer the question a planner asks, find that they read other cars' motion off the plan, measure what that costs, and repair it without retraining.</figcaption>
+  </figure>
+
+  <h2 class="tagline" id="abstract">Abstract</h2>
+  <div class="section">
+    <p>Self-driving systems increasingly use learned world models to judge candidate plans and train policies. This requires predicting what happens if the ego executes a plan, yet a model trained on driving logs learns what happened when drivers chose that plan. These differ because drivers react to traffic: slowing down in the logs usually means the car ahead slowed down, so the model learns to infer other cars' motion from the plan. We call this the <i>plan leak</i> and measure it by changing only the plan and checking whether cars that cannot react move.</p>
+    <p>In OmniNWM, a 4D driving world model, a plan that drives into the car ahead, even one stopped at a red light, moves that car away by as much as the ego advances, while parked cars barely move, so the crash never appears. Policies trained in a leaky model crash up to 2.8 times as often, and large leaks make planners brake unnecessarily. The cause is how the model sees the plan, not missing data: training on counterfactual plans barely helps, letting each step see only the ego's past removes the leak, and averaging over past-only plans repairs frozen models, bringing OmniNWM's crash back in 16 of 18 scenes.</p>
+  </div>
+
+  <h2 class="tagline" id="leak">The plan leak</h2>
+  <div class="section">
+    <p>A planner needs to know what happens if it executes a plan, <span class="eq">p(future | history, do(plan))</span>. A model trained on logs learns <span class="eq">p(future | history, plan)</span>. The two differ whenever the plan carries information about the rest of the world, and in driving it always does: a driver slows down because the car ahead slows down. So when a planner proposes to speed up, a plan-conditioned model moves the car ahead out of the way.</p>
+    <p>We measure this with one number. Give the model the logged plan and a counterfactual plan that differs only in the ego's motion, and read how far the car ahead moves in the generated future per metre the plan moves the ego further. That slope is the plan leak, <b>β</b>. Within seconds a real car ahead does not react to the car behind it, so the right answer is 0. Parked cars, which no plan can affect, are the control.</p>
+  </div>
+
+  <div class="subtagline">What β does to a crash check <span class="pill">drag the slider</span></div>
+  <figure class="fig">
+    <div class="slider-row"><label for="beta">plan leak β</label><input type="range" id="beta" min="0" max="1.2" step="0.01" value="1.0"><output id="beta-out" for="beta">1.00</output></div>
+    <div class="chart" id="toy"></div>
+    <figcaption><strong>The counterfactual plan drives the ego 1 m into the real car.</strong> At the moment it truly reaches the car, the model has moved the car β times the extra distance the plan added. The imagined gap closes only by (1 − β) of the extra motion, so near β = 1 every plan looks safe.</figcaption>
+  </figure>
+
+  <h2 class="tagline" id="omninwm">OmniNWM moves the car ahead</h2>
+  <div class="section">
+    <p>OmniNWM generates panoramic video with metric depth and semantics, conditioned on the ego's camera pose in every frame. We ran its released weights on 18 held-out nuScenes scenes with a real car up to 25 m ahead in the ego lane, and read the generated car from OmniNWM's own depth and semantics. The counterfactual plan adds the smallest constant acceleration that drives the ego at least 1 m into the real car. All tests were preregistered.</p>
+  </div>
+
+  <div class="subtagline">Every test scene <span class="pill">pick a scene</span></div>
+  <figure class="fig wide">
+    <div class="scene-pick" id="pick" role="group" aria-label="Test scenes"></div>
+    <div class="vgrid n3" id="three">
+      <div class="stage"><video muted playsinline preload="auto" aria-label="Logged plan"></video><span class="badge">Logged plan</span></div>
+      <div class="stage"><video muted playsinline preload="auto" aria-label="Crashing plan"></video><span class="badge leak">Crashing plan</span></div>
+      <div class="stage"><video muted playsinline preload="auto" aria-label="Past-only plan"></video><span class="badge causal">Past-only plan</span></div>
+      <div class="controls">
+        <button class="cbtn" data-act="play" type="button">Pause</button>
+        <div class="progress" aria-hidden="true"><i></i></div>
+        <button class="cbtn" data-act="speed" type="button">1×</button>
+      </div>
+    </div>
+    <div class="legend" style="margin-top:14px"><span><i class="ln"></i>real car (rear)</span><span><i class="ln leak dash"></i>crashing ego (front)</span><span><i class="ln leak"></i>car under the crashing plan</span><span><i class="ln stone"></i>under the logged plan</span><span><i class="ln causal"></i>under the past-only plan</span></div>
+    <div class="chart" id="gapchart"></div>
+    <p class="readout" id="scene-readout"></p>
+    <figcaption><strong>OmniNWM's front camera under three plans, and where it puts the car ahead.</strong> Distances are along the lane, in metres ahead of the ego at the start; the dot marks the real contact of the crashing plan. <span style="color:var(--leak)">▲</span> marks scenes where the car ahead is stopped. Videos play at half speed.</figcaption>
+  </figure>
+
+  <div class="facts">
+    <div class="fact"><b>β = 1.02</b><span>across the 18 scenes (95% CI 0.98 to 1.08). An independent re-implementation gives 1.00.</span></div>
+    <div class="fact"><b>0.23</b><span>metres a parked car moves per metre of plan change, about what imperfect execution alone produces.</span></div>
+    <div class="fact"><b>0 of 18</b><span>crashes caught by a check for generated vehicles inside the ego's footprint.</span></div>
+  </div>
+  <div class="section">
+    <p>The generated ego does move: visual odometry on the generated frames recovers 86% of the commanded motion. The leak is linear (slope 0.94 over braking, mild and crashing plans) and works both ways. Braking, well within the training distribution, pulls the car ahead towards the ego in all eight scenes where the ego moves. A real car ahead reacts to neither plan. OmniNWM's released collision rule alarms on half of the safe logged plans.</p>
+  </div>
+
+  <h2 class="tagline" id="models">The pattern is general</h2>
+  <div class="section">
+    <p>We ran the same test on four more released world models. Vista, another video model, also keeps the gap, but executes under half of the plan change, so it counts as supporting evidence only. The occupancy models SparseWorld-TC and DOME leak near 1, I²-World about half. Parked cars stay below 0.1 in all three.</p>
+  </div>
+  <figure class="fig">
+    <div class="legend"><span><i class="sw leak"></i>car ahead</span><span><i class="sw causal"></i>parked cars (control)</span><span>bars: 95% CI · hover for values</span></div>
+    <div class="chart" id="released"></div>
+    <figcaption><strong>The plan leak β of released world models.</strong> Metres the car ahead moves per metre the plan moves the ego; the correct value is 0. At 1 the gap never closes. Vista's parked cars also move with the plan, so its control is uninformative.</figcaption>
+  </figure>
+
+  <h2 class="tagline" id="cause">Where the leak comes from</h2>
+  <div class="section">
+    <p>Let D<sub>e</sub> and D<sub>a</sub> be the future displacements of the ego and of another agent. A model fitted to logs learns, to first order, the slope <span class="eq">β = Cov(D<sub>a</sub>, D<sub>e</sub> | h) / Var(D<sub>e</sub> | h)</span>. When the ego follows a car, its motion is caused by the lead's, so β &gt; 0, although the true, interventional slope is zero. How much a model absorbs depends on which plan steps it sees when it generates the next moment.</p>
+  </div>
+  <div class="subtagline">Same data, same network <span class="pill">choose the plan input</span></div>
+  <figure class="fig">
+    <div class="tools" id="mech-tools" role="group" aria-label="Plan input">
+      <button class="tbtn" type="button" data-m="0" aria-pressed="true">Whole plan</button>
+      <button class="tbtn" type="button" data-m="1" aria-pressed="false">Next 0.5 s</button>
+      <button class="tbtn" type="button" data-m="2" aria-pressed="false">Past only (causal)</button>
+      <button class="tbtn" type="button" data-m="3" aria-pressed="false">Next 0.5 s, repaired</button>
+    </div>
+    <div class="chart" id="mech"></div>
+    <figcaption><strong>Object world models on nuScenes vehicle tracks</strong>, identical except for the plan steps they see when generating t + 1 (dots: three seeds). Future plan steps encode how the driver will react to the world, so a model that sees them can read the world off the plan. The whole-plan model's leak matches the coupling in the training logs (0.67) with nothing fitted. Repaired: g-computation of the next-0.5 s model.</figcaption>
+  </figure>
+  <div class="section">
+    <p>The causal model, whose world at t + 1 sees the ego only up to t, does not leak (|β| ≤ 0.13 under two plan families) yet keeps the real reaction of a car following the ego. Accuracy rewards the leak: logged-plan error is lowest for the whole-plan model. More counterfactual data does not remove it either. Fine-tuning SparseWorld-TC on counterfactual plans barely changes its leak, from 0.83 to 0.77, or 0.73 with fully random plans.</p>
+  </div>
+
+  <h2 class="tagline" id="cost">What the leak costs</h2>
+  <div class="section">
+    <p>Extra ego motion closes the imagined gap by only 1 − β, so near β = 1 crash checks pass every plan. On 653 held-out decisions, trusting SparseWorld-TC's or DOME's verdict does not beat ignoring it; physics is best. The leak also shapes what is learned and planned inside the model.</p>
+  </div>
+  <div class="two">
+    <figure class="fig" style="margin:0">
+      <div class="chart-title">Policies trained inside each model</div>
+      <div class="chart" id="policy"></div>
+      <figcaption>Real crash rate on held-out logs at equal progress (3 model × 3 policy seeds). Policies trained in the next-0.5 s model learn that speeding up makes the car ahead drive away.</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <div class="chart-title">Braking judged less safe than cruising</div>
+      <div class="chart" id="phantom"></div>
+      <figcaption>Simulator states where each plan is safe, truly and as judged by the whole-plan model. Braking would pull the car ahead back, so the leak inverts the order of plans.</figcaption>
+    </figure>
+  </div>
+  <div class="section" style="margin-top:44px">
+    <p>In closed loop, a planner replans every 0.5 s and keeps plans whose predicted gap to every car ahead stays above a margin. To vary only the leak, it judges with the causal prediction plus k times (whole plan − causal). Harm grows with k. In the simulator the whole-plan model brakes hard four to eight times as often as the causal one, and 72% of these brakes are unnecessary. On real nuScenes traffic (log replay, 150 scenes) near-misses rise 1.7- to 3.3-fold at k = 3 for all seeds.</p>
+  </div>
+  <div class="two">
+    <figure class="fig" style="margin:0">
+      <div class="chart-title">Closed loop, simulator</div>
+      <div class="chart" id="dose-sim"></div>
+      <figcaption>Hard brakes per episode against leak dose k (0: causal, 1: whole plan). Band: three model seeds.</figcaption>
+    </figure>
+    <figure class="fig" style="margin:0">
+      <div class="chart-title">Closed loop, real traffic</div>
+      <div class="chart" id="dose-real"></div>
+      <figcaption>Near-misses (time to collision under 1.5 s) per episode; thin lines: model seeds; dashed: a planner using the true effects.</figcaption>
+    </figure>
+  </div>
+
+  <h2 class="tagline" id="repair">Repairs</h2>
+  <div class="section">
+    <p>Frozen models can be repaired at test time. g-computation steps a one-step model forward, shows the candidate plan only up to the present, and averages over past-only continuations; it removes the leak and the policy cost of the next-0.5 s model. A whole-plan video model can be repaired for detection: query OmniNWM with a plan that reveals only the past, so no car can respond to the crash, and view that world from the candidate plan's cameras using OmniNWM's own metric depth.</p>
+  </div>
+  <figure class="fig wide">
+    <div class="vgrid n2" id="pair">
+      <div class="stage"><video muted playsinline preload="auto" aria-label="OmniNWM conditioned on the crashing plan"></video><span class="badge leak">Conditioned on the crashing plan</span></div>
+      <div class="stage"><video muted playsinline preload="auto" aria-label="Repaired world from the same cameras"></video><span class="badge causal">Repaired · same cameras</span></div>
+      <div class="controls">
+        <button class="cbtn" data-act="play" type="button">Pause</button>
+        <div class="progress" aria-hidden="true"><i></i></div>
+        <button class="cbtn" data-act="speed" type="button">1×</button>
+      </div>
+    </div>
+    <p class="readout" id="pair-readout"></p>
+    <figcaption>The scene follows the picker above. Speckle is re-rendering holes; near contact the camera enters the reconstructed car, so the last frames break up.</figcaption>
+  </figure>
+  <figure class="fig">
+    <div class="legend"><span><i class="sw leak"></i>conditioned on the crashing plan</span><span><i class="sw causal"></i>past-only world</span><span>click a row to load that scene</span></div>
+    <div class="chart" id="dumbbell"></div>
+    <figcaption><strong>The gap at the real contact, scene by scene.</strong> Where each world puts the car ahead relative to the crashing ego's front, read when the ego truly reaches the real car. Shaded: the car is within 1 m of the crashing ego, so the crash shows. A planner built on such queries still under-reacts to braking cars, so this repair is for detection.</figcaption>
+  </figure>
+
+  <h2 class="tagline" id="recommendations">Recommendations</h2>
+  <ol class="takeaways">
+    <li><span>Vary only the plan. Report β with a parked-car control, and check how much of the plan the model executes before reading it.</span></li>
+    <li><span>Condition causally. Video models should place other agents from the ego's past, then render frame t + 1.</span></li>
+    <li><span>Select models by closed-loop decisions against physics and a plan-blind baseline, not by logged-plan accuracy.</span></li>
+  </ol>
+
+  <h2 class="tagline" id="method">Method</h2>
+  <p class="counts"><span><b>5</b> released world models</span><span><b>18</b> preregistered OmniNWM scenes</span><span><b>653</b> held-out decisions</span><span><b>150</b> real-traffic closed-loop scenes</span></p>
+  <dl class="spec">
+    <dt>Models</dt><dd>OmniNWM and Vista (video); SparseWorld-TC, DOME and I²-World (4D occupancy), all with released weights. Object world models trained on nuScenes vehicle tracks with identical network, data and budget, differing only in the plan input.</dd>
+    <dt>Leak test</dt><dd>Logged plan against the logged plan plus the smallest constant acceleration that drives the ego at least 1 m into the real car. β is read at the real contact, as the median over scenes with a scene-bootstrap interval, separately for the car ahead and for parked cars. Execution is checked with visual odometry on the generated frames.</dd>
+    <dt>Data</dt><dd>Held-out nuScenes validation scenes; OmniNWM scenes with a real car up to 25 m ahead in the ego lane, first 18 in a fixed random order.</dd>
+    <dt>Closed loop</dt><dd>A simulator with known true effects, and log replay of real nuScenes traffic. The planner replans every 0.5 s; the leak dose k mixes the causal and whole-plan predictions.</dd>
+    <dt>Protocol</dt><dd>Every confirmatory test was committed with the hash of its analysis code before its held-out outputs existed, and an independent re-implementation re-derived the headline numbers.</dd>
+  </dl>
+
+  <h2 class="tagline" id="citation">Citation</h2>
+  <div class="bib">
+    <pre id="bibtex">@misc{apage2026plans,
+  title  = {Plans Are Not Interventions: Measuring and Repairing
+            Plan Leakage in Driving World Models},
+  author = {Apage, Sahil and Abhilash, Medhansh},
+  year   = {2026}
+}</pre>
+    <button class="tbtn" type="button" id="copybib">Copy</button>
+  </div>
+
+  <div class="end">
+    <p>A plan is not an intervention.</p>
+    <small>Sahil Apage · Medhansh Abhilash · VJTI Mumbai</small>
+  </div>
+</div>
+
+<div id="tip" role="status" aria-live="polite"></div>
+<script type="application/json" id="data">{"scenes":[{"tok":"ad26","scene":"scene-0780","stopped":true,"a":2.25,"beta":1.08,"k":27,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[8.84,8.84,8.84,8.84,8.85,8.85,8.85,8.85,8.86,8.86,8.86,8.86,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87,8.87],"ego":[3.35,3.38,3.43,3.48,3.55,3.64,3.73,3.84,3.97,4.1,4.25,4.42,4.59,4.79,5.0,5.22,5.46,5.72,5.99,6.28,6.59,6.91,7.24,7.59,7.96,8.34,8.74,9.15,9.58,10.03,10.49,10.96,11.46],"ego_logged":[3.35,3.38,3.4,3.41,3.43,3.44,3.45,3.46,3.47,3.47,3.47,3.47,3.47,3.47,3.47,3.47,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46,3.46],"gen_crash":[10.66,10.68,10.41,10.33,10.21,10.55,10.76,11.14,11.34,11.21,12.72,11.06,11.17,10.32,10.6,11.94,11.86,11.13,11.14,11.18,11.55,12.57,12.38,12.88,13.11,13.76,14.34,14.56,15.64,17.71,17.46,16.44,17.39],"gen_logged":[10.91,11.07,10.95,10.78,10.6,10.8,10.81,10.96,11.03,10.9,12.01,10.7,10.7,9.85,10.11,10.69,10.7,10.04,9.79,9.78,9.91,10.44,9.98,10.05,9.79,10.19,10.24,9.65,9.84,10.69,10.3,9.98,10.24],"gen_past":[9.61,9.77,9.58,9.46,9.29,9.46,9.52,9.59,9.65,9.51,10.3,9.58,9.59,9.13,9.39,9.52,9.65,9.32,9.19,9.2,9.26,9.52,9.26,9.29,9.13,9.52,9.32,9.0,9.32,9.51,9.19,9.06,9.2],"gap_crash":5.41,"gap_past":0.16,"gap_pm0":0.72,"caught_pm":true,"alarm_logged_released":false},{"tok":"bd60","scene":"scene-0907","stopped":true,"a":1.5,"beta":1.42,"k":26,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.59,1.68,1.78,1.87,1.96,2.05,2.13,2.22,2.3,2.38,2.47,2.55,2.63,2.72],"real":[9.93,9.96,9.99,10.02,10.05,10.08,10.11,10.14,10.16,10.19,10.22,10.25,10.28,10.31,10.34,10.37,10.4,10.43,10.46,10.49,10.52,10.55,10.58,10.61,10.64,10.66,10.69,10.71,10.73,10.76,10.78,10.81,10.83],"ego":[3.35,3.48,3.72,3.98,4.12,4.39,4.65,4.82,5.09,5.38,5.57,5.87,6.17,6.39,6.68,6.98,7.22,7.54,7.87,8.16,8.53,8.91,9.23,9.63,10.08,10.45,10.83,11.17,11.57,11.97,12.34,12.76,13.17],"ego_logged":[3.35,3.47,3.7,3.93,4.04,4.26,4.46,4.57,4.76,4.95,5.05,5.24,5.42,5.51,5.66,5.81,5.88,6.03,6.18,6.25,6.4,6.55,6.62,6.75,6.93,7.04,7.15,7.2,7.31,7.41,7.46,7.56,7.64],"gen_crash":[11.49,11.62,11.48,11.54,11.43,11.61,11.68,11.74,12.06,11.82,12.6,12.25,12.61,12.26,12.67,12.97,13.35,13.07,13.27,13.57,13.99,14.64,14.65,15.24,15.36,16.25,16.44,16.58,17.37,18.03,17.93,18.29,19.03],"gen_logged":[11.44,11.49,11.32,11.3,11.21,11.23,11.3,11.29,11.4,11.21,12.02,11.23,11.54,11.11,11.33,11.41,11.56,11.17,11.07,11.08,11.15,11.37,10.99,11.12,11.04,11.28,11.2,11.12,11.35,11.52,11.19,11.21,11.36],"gen_past":[11.37,11.53,11.27,11.27,11.13,11.25,11.35,11.43,11.59,11.26,12.17,11.3,11.47,11.04,11.12,11.2,11.39,11.05,10.9,11.05,11.03,11.23,11.03,11.16,10.84,11.36,11.09,10.96,11.22,11.42,11.03,10.96,11.08],"gap_crash":5.61,"gap_past":0.26,"gap_pm0":2.19,"caught_pm":true,"alarm_logged_released":true},{"tok":"d036","scene":"scene-0563","stopped":false,"a":2.5,"beta":null,"k":28,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[10.13,10.37,10.6,10.84,11.07,11.3,11.54,11.77,12.01,12.24,12.47,12.71,12.94,13.13,13.33,13.52,13.71,13.91,14.1,14.29,14.48,14.68,14.87,15.06,15.26,15.39,15.51,15.64,15.77,15.9,16.03,16.14,16.26],"ego":[3.35,3.62,3.92,4.1,4.44,4.79,5.01,5.38,5.76,6.04,6.46,6.9,7.23,7.7,8.17,8.53,9.05,9.58,10.01,10.57,11.14,11.61,12.23,12.87,13.39,14.04,14.72,15.29,15.99,16.72,17.34,18.09,18.87],"ego_logged":[3.35,3.62,3.88,4.02,4.3,4.57,4.7,4.95,5.21,5.34,5.6,5.86,5.98,6.23,6.47,6.58,6.83,7.08,7.2,7.44,7.67,7.78,8.03,8.28,8.39,8.62,8.85,8.97,9.19,9.42,9.53,9.75,9.99],"gen_crash":[12.65,14.63,14.7,14.6,14.46,14.03,14.55,14.71,14.8,14.78,15.95,16.2,15.9,16.07,16.68,16.13,16.64,16.99,17.02,17.13,18.73,19.33,21.12,26.92,30.47,34.91,35.06,34.24,35.99,36.05,36.47,37.18,38.77],"gen_logged":[12.72,14.48,14.39,14.27,14.42,13.94,14.36,14.25,14.32,14.26,15.25,15.5,15.23,15.52,15.76,15.1,15.51,15.19,15.28,15.53,15.73,15.99,16.44,16.18,16.55,17.3,17.27,17.17,18.13,18.41,18.05,15.1,15.12],"gen_past":[12.71,13.89,13.56,13.34,13.36,12.86,13.12,13.0,12.98,12.57,12.99,12.82,12.95,12.44,13.22,12.67,12.84,13.06,12.94,12.56,12.82,12.69,12.88,12.37,12.49,13.33,12.83,12.36,13.22,13.4,12.81,12.88,12.89],"gap_crash":20.0,"gap_past":-2.77,"gap_pm0":-0.62,"caught_pm":true,"alarm_logged_released":true},{"tok":"6b3c","scene":"scene-0097","stopped":true,"a":2.5,"beta":0.87,"k":26,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.59,1.68,1.77,1.87,1.96,2.05,2.13,2.22,2.3,2.38,2.47,2.55,2.63,2.72],"real":[8.96,8.96,8.96,8.96,8.96,8.97,8.97,8.97,8.97,8.97,8.97,8.98,8.98,8.98,8.99,8.99,9.0,9.0,9.0,9.03,9.06,9.08,9.11,9.13,9.18,9.24,9.3,9.36,9.41,9.47,9.57,9.7,9.82],"ego":[3.35,3.36,3.38,3.43,3.49,3.57,3.66,3.78,3.91,4.05,4.22,4.4,4.6,4.82,5.05,5.3,5.57,5.86,6.16,6.51,6.89,7.29,7.7,8.14,8.6,9.03,9.49,9.96,10.45,10.95,11.47,12.01,12.57],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[10.45,10.59,10.36,10.35,10.14,10.74,11.03,11.28,11.59,12.01,13.75,11.82,10.73,10.55,11.5,12.55,12.88,11.46,11.31,11.61,12.04,13.16,13.12,13.69,14.01,14.51,15.23,16.34,16.71,18.26,18.26,17.82,18.9],"gen_logged":[11.31,11.89,11.69,11.51,11.3,12.22,12.48,12.73,13.0,12.99,14.94,12.22,10.53,10.07,11.18,12.22,11.83,10.19,9.8,9.61,9.67,10.19,9.74,9.67,9.28,9.42,9.93,9.86,9.41,10.45,9.86,9.67,9.94],"gen_past":[11.35,11.89,11.69,11.56,11.31,12.23,12.53,12.74,13.0,13.0,14.96,12.22,10.52,10.07,11.24,12.23,11.89,10.25,9.86,9.66,9.67,10.2,9.74,9.67,9.28,9.48,9.93,9.87,9.41,10.45,9.87,9.67,9.99],"gap_crash":5.74,"gap_past":0.38,"gap_pm0":0.38,"caught_pm":true,"alarm_logged_released":false},{"tok":"a131","scene":"scene-0797","stopped":false,"a":3.25,"beta":1.05,"k":30,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.15,2.23,2.3,2.38,2.45,2.53,2.62],"real":[21.85,21.97,22.08,22.2,22.31,22.42,22.54,22.65,22.75,22.86,22.97,23.08,23.19,23.27,23.35,23.43,23.52,23.6,23.68,23.76,23.83,23.91,23.98,24.06,24.14,24.14,24.14,24.14,24.15,24.15,24.15,24.15,24.16],"ego":[3.35,4.02,4.7,5.07,5.76,6.46,6.88,7.6,8.33,8.79,9.54,10.33,10.86,11.66,12.47,13.04,13.86,14.69,15.31,16.17,17.04,17.71,18.6,19.47,20.19,21.04,21.93,22.64,23.53,24.1,25.03,26.18,27.18],"ego_logged":[3.35,4.01,4.66,4.97,5.58,6.18,6.47,7.04,7.61,7.88,8.42,8.97,9.23,9.75,10.26,10.5,10.97,11.43,11.66,12.1,12.53,12.74,13.13,13.5,13.69,14.05,14.42,14.6,14.93,14.93,15.27,15.75,16.05],"gen_crash":[20.26,21.51,21.99,22.57,23.14,23.9,25.54,25.83,26.67,26.49,28.8,28.93,29.26,29.54,30.29,31.11,32.33,32.51,33.13,34.05,36.54,36.56,36.92,39.46,39.11,40.35,41.82,42.27,42.58,43.33,44.35,45.8,46.75],"gen_logged":[20.26,21.71,22.15,22.53,23.08,23.88,25.2,25.44,26.01,25.64,27.6,27.57,27.64,27.64,28.14,28.71,29.45,29.25,29.21,29.59,31.7,31.58,31.66,32.94,32.22,32.82,33.91,33.71,33.72,33.78,34.19,34.87,35.3],"gen_past":[20.13,21.4,21.75,22.29,22.76,23.48,24.77,25.13,25.49,25.52,27.43,27.1,27.35,27.33,27.76,28.57,29.36,28.91,29.04,29.47,31.54,31.44,31.58,32.76,32.3,32.98,33.9,33.9,33.97,34.35,34.71,35.23,35.6],"gap_crash":19.32,"gap_past":9.68,"gap_pm0":13.94,"caught_pm":false,"alarm_logged_released":false},{"tok":"8d67","scene":"scene-0556","stopped":false,"a":3.75,"beta":1.08,"k":29,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.09,2.17,2.25,2.34,2.42,2.5,2.59,2.67],"real":[14.57,15.02,15.46,15.9,16.34,16.78,17.22,17.64,18.06,18.47,18.89,19.31,19.73,20.13,20.53,20.94,21.34,21.74,22.15,22.5,22.85,23.19,23.54,23.89,24.24,24.56,24.88,25.2,25.52,25.84,26.16,26.38,26.61],"ego":[3.35,3.63,4.2,4.79,5.15,5.79,6.47,6.89,7.61,8.34,8.84,9.62,10.43,11.02,11.87,12.74,13.39,14.31,15.25,15.98,16.97,17.99,18.79,19.85,20.94,21.82,22.95,24.12,25.07,26.27,27.5,28.51,29.75],"ego_logged":[3.35,3.61,4.14,4.67,4.94,5.47,6.0,6.26,6.77,7.29,7.54,8.05,8.56,8.81,9.31,9.81,10.05,10.54,11.03,11.27,11.75,12.24,12.48,12.95,13.43,13.67,14.14,14.61,14.84,15.3,15.76,15.98,16.4],"gen_crash":[16.23,16.96,17.35,18.59,18.49,19.2,20.12,20.67,21.32,22.34,24.46,24.38,25.46,25.78,26.64,28.35,28.66,28.67,30.27,31.53,34.21,35.17,35.79,37.75,38.25,39.69,41.04,42.41,42.96,44.48,46.11,46.9,48.07],"gen_logged":[16.06,16.82,17.3,18.47,18.47,19.03,19.91,20.3,20.69,21.26,23.02,22.63,23.64,23.63,24.25,25.46,25.52,25.49,26.38,26.87,28.61,29.17,29.27,30.44,30.27,30.85,31.59,32.37,32.09,32.59,33.32,33.6,33.83],"gen_past":[15.92,16.8,17.16,18.29,18.7,19.03,20.13,20.84,21.06,21.34,23.19,22.74,23.39,23.44,23.8,24.87,25.15,24.84,25.55,26.32,27.47,28.09,28.37,28.9,28.45,29.68,29.53,28.97,30.82,30.44,30.7,30.96,31.2],"gap_crash":18.21,"gap_past":4.43,"gap_pm0":8.11,"caught_pm":false,"alarm_logged_released":false},{"tok":"01c8","scene":"scene-1068","stopped":false,"a":2.25,"beta":1.01,"k":26,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[8.96,9.19,9.42,9.66,9.89,10.13,10.36,10.63,10.9,11.16,11.43,11.7,11.97,12.26,12.56,12.85,13.15,13.44,13.74,14.06,14.39,14.71,15.03,15.36,15.68,16.05,16.42,16.8,17.17,17.54,17.91,18.32,18.72],"ego":[3.35,3.5,3.81,4.15,4.36,4.75,5.15,5.42,5.88,6.35,6.67,7.2,7.75,8.13,8.73,9.35,9.79,10.45,11.13,11.62,12.33,13.06,13.6,14.34,15.09,15.66,16.45,17.26,17.89,18.72,19.56,20.23,21.1],"ego_logged":[3.35,3.49,3.78,4.08,4.24,4.55,4.87,5.04,5.38,5.71,5.89,6.25,6.62,6.81,7.2,7.59,7.79,8.19,8.59,8.79,9.2,9.61,9.81,10.21,10.59,10.78,11.17,11.57,11.76,12.15,12.53,12.72,13.1],"gen_crash":[10.62,11.02,11.13,11.29,11.31,11.82,12.29,12.56,13.21,13.54,14.59,14.14,15.08,14.88,15.62,16.09,16.86,16.74,17.03,18.03,18.68,19.68,19.83,20.76,21.18,21.83,22.62,23.16,24.12,25.27,25.52,26.06,27.26],"gen_logged":[10.68,10.95,11.04,11.22,11.18,11.56,12.01,12.18,12.7,12.85,13.81,13.19,13.89,13.55,14.08,14.33,14.79,14.55,14.44,15.15,15.49,16.23,16.05,16.56,16.62,16.94,17.33,17.53,17.99,18.7,18.55,18.56,19.32],"gen_past":[10.43,10.76,10.75,10.69,10.54,10.77,10.99,11.08,11.33,11.2,12.09,11.41,11.77,11.27,11.4,11.53,11.78,11.3,11.0,11.54,11.43,12.01,11.49,11.75,11.37,11.81,11.75,11.49,11.75,12.14,11.63,11.56,11.82],"gap_crash":6.16,"gap_past":-4.7,"gap_pm0":-1.52,"caught_pm":true,"alarm_logged_released":true},{"tok":"fd53","scene":"scene-0095","stopped":true,"a":2.5,"beta":0.74,"k":27,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5,9.5],"ego":[3.35,3.36,3.38,3.43,3.49,3.57,3.66,3.78,3.91,4.05,4.22,4.4,4.6,4.82,5.05,5.3,5.57,5.86,6.16,6.48,6.82,7.18,7.55,7.94,8.35,8.78,9.22,9.68,10.16,10.65,11.17,11.69,12.24],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[11.89,12.48,12.32,12.04,11.96,12.1,12.06,12.11,12.3,11.81,12.62,12.35,12.29,11.85,12.08,12.41,12.87,12.96,13.0,13.66,14.14,14.61,14.54,15.06,15.27,15.82,16.2,16.13,17.47,18.47,18.27,18.48,19.61],"gen_logged":[12.21,12.8,12.73,12.42,12.27,12.48,12.47,12.47,12.6,12.27,13.12,12.72,12.4,11.82,11.96,12.15,12.35,12.14,12.15,12.27,12.42,12.54,12.21,12.21,11.95,12.09,12.15,11.49,11.75,12.21,11.89,11.88,12.02],"gen_past":[12.15,12.74,12.68,12.35,12.16,12.47,12.41,12.41,12.55,12.27,13.12,12.72,12.34,11.82,11.95,12.14,12.34,12.14,12.14,12.27,12.35,12.48,12.15,12.15,11.94,12.03,12.09,11.44,11.69,12.14,11.88,11.83,12.01],"gap_crash":6.52,"gap_past":2.01,"gap_pm0":2.07,"caught_pm":true,"alarm_logged_released":true},{"tok":"d53d","scene":"scene-1071","stopped":false,"a":3.0,"beta":1.0,"k":29,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[12.31,13.12,13.92,14.73,15.53,16.34,17.14,17.94,18.74,19.54,20.34,21.15,21.95,22.74,23.53,24.33,25.12,25.91,26.71,27.5,28.3,29.09,29.88,30.68,31.47,32.27,33.06,33.85,34.65,35.44,36.23,37.03,37.82],"ego":[3.35,3.86,4.91,5.95,6.52,7.6,8.68,9.3,10.44,11.61,12.31,13.55,14.79,15.54,16.79,18.07,18.89,20.23,21.61,22.5,23.89,25.31,26.25,27.72,29.21,30.22,31.77,33.31,34.38,35.96,37.52,38.65,40.27],"ego_logged":[3.35,3.85,4.86,5.86,6.36,7.34,8.3,8.79,9.77,10.77,11.27,12.29,13.29,13.78,14.75,15.73,16.22,17.23,18.24,18.74,19.72,20.72,21.21,22.21,23.21,23.71,24.73,25.72,26.22,27.2,28.15,28.64,29.6],"gen_crash":[14.14,15.17,16.02,16.87,17.24,18.78,20.18,20.87,22.53,23.57,25.25,25.51,26.69,26.85,28.24,29.33,30.66,31.15,31.94,33.23,34.7,35.97,36.72,38.26,39.48,40.82,42.43,43.9,44.92,47.2,48.19,49.44,51.31],"gen_logged":[14.14,15.1,15.91,16.77,17.01,18.45,19.68,20.17,21.73,22.6,24.02,24.06,25.12,25.17,26.39,27.3,28.25,28.41,28.64,29.6,30.59,31.45,31.87,32.82,33.68,34.5,35.45,36.32,36.82,38.44,38.81,39.3,40.45],"gen_past":[14.2,15.63,16.14,16.77,17.39,18.59,19.65,20.43,21.59,22.22,24.09,23.78,24.51,24.94,25.68,26.32,27.4,27.42,27.34,28.5,29.15,29.84,30.28,30.89,31.18,32.29,32.81,33.13,33.89,34.96,34.88,35.65,36.37],"gap_crash":11.24,"gap_past":-1.07,"gap_pm0":3.26,"caught_pm":true,"alarm_logged_released":true},{"tok":"4406","scene":"scene-1067","stopped":false,"a":2.5,"beta":1.24,"k":28,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[13.36,13.79,14.22,14.65,15.08,15.51,15.94,16.35,16.75,17.15,17.56,17.96,18.36,18.7,19.04,19.38,19.72,20.06,20.4,20.75,21.1,21.45,21.81,22.16,22.51,22.83,23.15,23.47,23.78,24.1,24.42,24.67,24.92],"ego":[3.35,4.05,4.74,5.12,5.84,6.57,6.99,7.75,8.51,8.96,9.75,10.54,11.04,11.84,12.67,13.21,14.05,14.92,15.52,16.41,17.31,17.95,18.87,19.82,20.5,21.46,22.44,23.17,24.17,25.18,25.94,26.94,27.95],"ego_logged":[3.35,4.04,4.71,5.04,5.7,6.35,6.68,7.32,7.95,8.26,8.88,9.49,9.79,10.38,10.97,11.25,11.83,12.42,12.71,13.28,13.84,14.12,14.68,15.23,15.5,16.04,16.58,16.85,17.37,17.89,18.13,18.6,19.06],"gen_crash":[15.37,16.79,17.03,17.14,17.61,18.59,19.21,20.16,20.53,20.79,22.8,22.56,22.99,23.35,24.16,24.78,25.94,25.45,25.97,27.26,28.68,29.12,29.97,30.86,31.08,32.49,33.67,33.83,35.09,36.29,36.59,37.53,38.67],"gen_logged":[15.31,16.58,16.73,16.68,17.01,17.92,18.25,18.96,19.33,19.31,21.16,20.6,20.84,20.84,21.36,21.65,22.23,21.65,21.86,22.76,23.57,23.92,24.21,24.71,24.53,25.32,26.11,25.74,26.65,27.37,27.03,27.44,28.21],"gen_past":[15.12,16.22,16.34,16.53,16.69,17.37,17.97,18.5,18.75,18.93,20.53,19.72,20.25,19.88,20.33,20.58,21.01,20.26,20.42,21.08,21.53,21.92,21.77,22.0,21.9,22.36,22.76,22.36,22.92,23.36,22.8,22.88,23.54],"gap_crash":10.91,"gap_past":-1.25,"gap_pm0":6.16,"caught_pm":true,"alarm_logged_released":true},{"tok":"e307","scene":"scene-0100","stopped":true,"a":2.0,"beta":1.03,"k":27,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.68,1.77,1.85,1.93,2.02,2.1,2.18,2.27,2.35,2.43,2.52,2.6,2.68,2.77],"real":[8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.51,8.51,8.51,8.52,8.52,8.52,8.52,8.53,8.53,8.53,8.53,8.54,8.54],"ego":[3.35,3.36,3.38,3.41,3.46,3.52,3.6,3.69,3.79,3.91,4.05,4.19,4.35,4.56,4.79,5.04,5.31,5.6,5.91,6.18,6.47,6.77,7.09,7.42,7.76,8.12,8.49,8.88,9.28,9.69,10.12,10.56,11.01],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[10.72,10.48,10.22,10.2,9.92,10.3,10.52,10.73,11.3,10.96,12.08,10.9,11.13,10.96,11.45,11.95,11.78,10.64,10.93,10.82,11.04,11.8,11.14,11.67,11.42,11.59,11.95,12.34,13.33,15.49,15.54,15.71,16.82],"gen_logged":[9.8,9.87,9.67,9.55,9.42,9.48,9.54,9.55,9.74,9.36,10.4,9.67,9.81,9.35,9.62,9.74,9.81,9.28,9.35,9.29,9.29,9.54,9.22,9.29,9.03,9.42,9.28,9.15,9.48,9.8,9.28,9.22,9.35],"gen_past":[9.74,9.87,9.67,9.55,9.42,9.48,9.54,9.55,9.74,9.36,10.39,9.62,9.81,9.35,9.62,9.74,9.81,9.28,9.35,9.29,9.29,9.54,9.22,9.29,9.03,9.42,9.28,9.15,9.48,9.75,9.28,9.22,9.35],"gap_crash":3.46,"gap_past":0.4,"gap_pm0":0.35,"caught_pm":true,"alarm_logged_released":false},{"tok":"b479","scene":"scene-0014","stopped":true,"a":2.0,"beta":0.42,"k":26,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.57,0.63,0.7,0.77,0.83,0.9,0.98,1.07,1.15,1.23,1.32,1.4,1.48,1.57,1.65,1.73,1.82,1.9,1.98,2.07,2.15,2.23,2.32,2.4,2.48,2.57],"real":[7.21,7.2,7.2,7.2,7.19,7.19,7.19,7.19,7.18,7.18,7.18,7.18,7.17,7.17,7.18,7.2,7.21,7.23,7.24,7.26,7.29,7.33,7.36,7.4,7.44,7.48,7.53,7.59,7.64,7.7,7.76,7.82,7.94],"ego":[3.35,3.36,3.38,3.41,3.46,3.52,3.6,3.67,3.75,3.84,3.94,4.04,4.16,4.32,4.49,4.67,4.87,5.08,5.31,5.55,5.8,6.07,6.35,6.65,6.96,7.28,7.62,7.97,8.33,8.71,9.11,9.51,9.93],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[8.14,8.41,8.43,8.33,7.99,8.05,8.19,8.2,8.34,7.66,9.25,8.64,8.69,8.32,8.7,9.07,9.15,9.35,9.25,9.36,10.02,10.72,10.37,10.85,10.85,11.17,11.31,10.42,11.18,11.43,11.11,11.83,12.68],"gen_logged":[7.88,8.14,8.08,7.95,7.69,7.82,7.88,7.95,7.96,7.43,8.79,8.2,7.95,7.56,7.82,7.95,7.89,7.82,8.08,7.56,7.95,8.08,7.95,7.95,7.82,7.95,8.08,7.56,7.63,7.95,7.76,7.76,7.56],"gen_past":[7.88,8.14,8.08,7.95,7.69,7.83,7.88,7.95,8.01,7.44,8.74,8.15,7.95,7.56,7.82,7.95,7.89,7.82,8.08,7.56,7.95,8.08,7.95,7.95,7.82,7.95,8.08,7.56,7.63,7.95,7.76,7.76,7.56],"gap_crash":3.55,"gap_past":0.33,"gap_pm0":0.33,"caught_pm":true,"alarm_logged_released":true},{"tok":"e372","scene":"scene-0794","stopped":true,"a":1.25,"beta":1.53,"k":26,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[6.21,6.21,6.21,6.21,6.21,6.21,6.21,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.19,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.2,6.21,6.21,6.21],"ego":[3.35,3.35,3.37,3.39,3.42,3.46,3.51,3.56,3.63,3.7,3.78,3.87,3.97,4.08,4.2,4.32,4.46,4.6,4.75,4.91,5.08,5.26,5.45,5.64,5.85,6.06,6.28,6.51,6.75,7.0,7.25,7.52,7.79],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[6.97,7.17,6.99,7.01,6.91,7.01,7.06,7.18,7.31,7.26,7.87,7.69,7.92,7.77,8.01,8.34,8.66,8.61,8.64,9.11,9.29,9.85,9.97,10.24,10.38,10.79,11.07,11.17,11.74,12.18,12.24,12.44,13.04],"gen_logged":[6.77,6.91,6.77,6.71,6.64,6.65,6.64,6.71,6.77,6.58,7.1,6.78,6.9,6.51,6.58,6.71,6.77,6.64,6.45,6.51,6.45,6.77,6.51,6.64,6.45,6.65,6.58,6.38,6.51,6.65,6.45,6.45,6.58],"gen_past":[6.77,6.9,6.77,6.65,6.64,6.65,6.64,6.71,6.77,6.64,7.1,6.78,6.9,6.45,6.58,6.71,6.78,6.64,6.45,6.51,6.51,6.77,6.51,6.64,6.45,6.65,6.58,6.38,6.51,6.65,6.45,6.45,6.58],"gap_crash":4.79,"gap_past":0.3,"gap_pm0":0.3,"caught_pm":true,"alarm_logged_released":false},{"tok":"bb08","scene":"scene-0626","stopped":true,"a":2.25,"beta":null,"k":27,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[7.4,7.43,7.45,7.47,7.49,7.52,7.54,7.61,7.67,7.74,7.81,7.87,7.94,8.09,8.23,8.38,8.52,8.67,8.82,8.96,9.11,9.26,9.4,9.55,9.7,9.89,10.08,10.27,10.46,10.66,10.85,11.08,11.32],"ego":[3.35,3.5,3.6,3.79,3.99,4.14,4.34,4.54,4.71,4.93,5.16,5.36,5.59,5.83,6.07,6.34,6.63,6.9,7.21,7.52,7.84,8.18,8.53,8.89,9.27,9.67,10.07,10.49,10.93,11.39,11.87,12.39,12.9],"ego_logged":[3.35,3.49,3.56,3.72,3.87,3.94,4.05,4.16,4.21,4.3,4.38,4.41,4.46,4.51,4.54,4.58,4.63,4.64,4.68,4.7,4.71,4.73,4.75,4.76,4.77,4.78,4.78,4.79,4.8,4.81,4.84,4.87,4.89],"gen_crash":[8.97,8.91,8.75,8.62,8.43,8.38,8.53,8.59,8.82,8.84,9.6,9.21,9.5,9.09,9.26,9.54,9.57,9.58,9.88,10.2,9.93,10.46,10.03,null,null,null,null,null,null,null,null,null,null],"gen_logged":[8.57,8.64,8.46,8.35,8.24,8.18,8.17,8.21,8.32,8.27,8.81,8.45,8.5,8.16,8.19,8.36,8.4,8.29,8.19,8.15,8.04,8.31,8.2,8.14,8.22,8.23,8.23,8.17,8.51,8.39,8.09,8.05,8.21],"gen_past":[8.5,8.53,8.41,8.29,8.21,8.18,8.16,8.23,8.37,8.26,8.71,8.36,8.52,8.16,8.18,8.37,8.38,8.25,8.18,8.17,8.04,8.31,8.11,8.1,8.11,8.18,8.17,8.11,8.37,8.31,8.05,8.04,8.18],"gap_crash":null,"gap_past":-2.32,"gap_pm0":-0.64,"caught_pm":true,"alarm_logged_released":false},{"tok":"6a85","scene":"scene-0781","stopped":true,"a":2.25,"beta":0.99,"k":27,"t":[0.0,0.07,0.15,0.22,0.3,0.37,0.45,0.54,0.63,0.72,0.82,0.91,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.09,2.17,2.25,2.33,2.42,2.5,2.58,2.66],"real":[8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69,8.69],"ego":[3.35,3.36,3.38,3.41,3.45,3.51,3.58,3.68,3.8,3.94,4.1,4.28,4.47,4.67,4.88,5.1,5.35,5.6,5.88,6.17,6.47,6.8,7.14,7.49,7.86,8.24,8.64,9.05,9.47,9.91,10.37,10.85,11.34],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[10.85,10.86,10.68,10.51,10.36,10.68,10.94,11.25,11.61,11.36,12.71,11.38,11.38,10.47,10.74,11.95,11.98,11.13,11.03,11.12,11.43,12.47,12.23,12.78,13.01,13.72,14.24,14.58,15.47,17.79,17.41,16.25,17.28],"gen_logged":[9.54,9.67,9.54,9.35,9.21,9.28,9.34,9.42,9.54,9.37,10.07,9.42,9.6,9.08,9.29,9.41,9.47,9.15,9.03,9.03,9.09,9.35,9.09,9.15,8.89,9.28,9.15,8.88,9.21,9.34,9.02,8.88,9.02],"gen_past":[9.54,9.67,9.49,9.34,9.21,9.28,9.34,9.42,9.54,9.35,10.07,9.41,9.54,9.02,9.28,9.41,9.48,9.15,9.02,9.02,9.14,9.35,9.09,9.15,8.95,9.28,9.14,8.88,9.21,9.35,9.02,8.88,9.02],"gap_crash":5.53,"gap_past":0.09,"gap_pm0":0.1,"caught_pm":true,"alarm_logged_released":false},{"tok":"eec4","scene":"scene-0798","stopped":false,"a":3.25,"beta":0.9,"k":27,"t":[0.0,0.09,0.18,0.28,0.37,0.46,0.55,0.63,0.72,0.8,0.88,0.97,1.05,1.13,1.22,1.3,1.38,1.47,1.55,1.63,1.72,1.8,1.88,1.97,2.05,2.13,2.22,2.3,2.38,2.47,2.55,2.63,2.72],"real":[7.54,7.68,7.82,7.96,8.11,8.25,8.42,8.61,8.79,8.97,9.16,9.34,9.57,9.81,10.06,10.31,10.56,10.81,11.09,11.38,11.68,11.97,12.27,12.56,12.91,13.29,13.67,14.05,14.43,14.81,15.21,15.62,16.04],"ego":[3.35,3.36,3.41,3.49,3.59,3.73,3.92,4.11,4.33,4.55,4.83,5.14,5.45,5.82,6.23,6.63,7.11,7.63,8.12,8.71,9.33,9.89,10.58,11.3,11.94,12.73,13.56,14.29,15.19,16.13,16.96,17.95,18.96],"ego_logged":[3.35,3.35,3.35,3.36,3.37,3.39,3.43,3.46,3.49,3.51,3.56,3.62,3.66,3.73,3.83,3.88,4.0,4.13,4.21,4.37,4.54,4.62,4.81,5.0,5.11,5.33,5.56,5.69,5.95,6.23,6.38,6.67,6.96],"gen_crash":[8.61,8.81,8.72,8.79,8.71,8.98,9.23,9.55,9.97,9.86,11.11,10.78,11.02,11.0,11.61,12.33,12.88,12.94,13.43,14.02,14.9,15.66,16.22,16.87,17.38,18.43,19.13,19.54,20.7,22.02,22.46,23.26,24.53],"gen_logged":[8.73,8.73,8.67,8.54,8.36,8.38,8.41,8.45,8.55,8.37,9.39,8.81,8.84,8.2,8.49,8.54,8.66,8.53,8.41,8.45,8.61,8.89,8.62,8.95,8.86,9.08,9.18,9.11,9.64,10.11,9.73,9.89,10.38],"gen_past":[8.4,8.53,8.4,8.34,8.21,8.27,8.27,8.34,8.4,8.14,8.99,8.47,8.53,8.01,8.21,8.46,8.46,8.21,8.14,7.96,8.21,8.34,8.21,8.28,8.02,8.47,8.27,7.95,8.08,8.33,8.07,8.01,8.14],"gap_crash":5.25,"gap_past":-6.21,"gap_pm0":-6.21,"caught_pm":true,"alarm_logged_released":true},{"tok":"fbba","scene":"scene-0100","stopped":true,"a":2.0,"beta":1.94,"k":27,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.09,2.18,2.28,2.37,2.46,2.55,2.63,2.72],"real":[8.55,8.55,8.55,8.56,8.56,8.56,8.56,8.56,8.56,8.55,8.55,8.55,8.54,8.54,8.53,8.53,8.53,8.52,8.52,8.52,8.51,8.51,8.51,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5,8.5],"ego":[3.35,3.36,3.38,3.41,3.46,3.52,3.6,3.69,3.79,3.91,4.04,4.19,4.35,4.52,4.71,4.91,5.13,5.36,5.6,5.86,6.13,6.41,6.71,7.03,7.35,7.73,8.12,8.53,8.95,9.4,9.86,10.29,10.73],"ego_logged":[3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35,3.35],"gen_crash":[10.65,10.4,10.1,10.14,9.86,10.18,10.44,10.61,11.16,10.82,11.86,10.77,10.99,10.72,11.24,11.63,11.45,10.38,10.57,10.43,10.64,11.31,10.7,11.27,11.07,11.26,11.58,11.99,12.94,15.27,15.48,15.71,16.8],"gen_logged":[9.74,9.8,9.62,9.54,9.35,9.42,9.48,9.48,9.61,9.29,10.33,9.61,9.81,9.35,9.55,9.67,9.74,9.21,9.28,9.23,9.23,9.48,9.16,9.22,8.96,9.35,9.16,9.09,9.42,9.68,9.22,9.15,9.29],"gen_past":[9.68,9.75,9.62,9.55,9.42,9.42,9.48,9.54,9.62,9.29,10.33,9.61,9.81,9.35,9.55,9.67,9.75,9.22,9.28,9.23,9.28,9.48,9.15,9.22,8.96,9.36,9.21,9.09,9.42,9.73,9.23,9.16,9.35],"gap_crash":3.46,"gap_past":0.68,"gap_pm0":0.63,"caught_pm":true,"alarm_logged_released":false},{"tok":"918b","scene":"scene-1070","stopped":false,"a":4.0,"beta":0.98,"k":29,"t":[0.0,0.08,0.17,0.25,0.33,0.42,0.5,0.58,0.67,0.75,0.83,0.92,1.0,1.08,1.17,1.25,1.33,1.42,1.5,1.58,1.67,1.75,1.83,1.92,2.0,2.08,2.17,2.25,2.33,2.42,2.5,2.58,2.67],"real":[14.89,15.84,16.78,17.73,18.67,19.62,20.56,21.5,22.44,23.38,24.31,25.25,26.19,27.13,28.06,29.0,29.94,30.88,31.81,32.75,33.69,34.63,35.57,36.51,37.45,38.39,39.33,40.26,41.2,42.14,43.08,44.01,44.95],"ego":[3.35,4.47,5.65,6.28,7.51,8.77,9.5,10.82,12.16,12.97,14.38,15.82,16.71,18.21,19.74,20.72,22.3,22.76,24.98,26.66,28.36,29.5,31.25,33.04,34.27,36.1,37.95,39.26,41.18,43.13,44.55,46.58,48.62],"ego_logged":[3.35,4.46,5.59,6.16,7.29,8.43,9.0,10.14,11.27,11.84,12.99,14.14,14.71,15.87,17.02,17.59,18.74,18.74,20.49,21.65,22.8,23.38,24.53,25.69,26.27,27.42,28.56,29.13,30.29,31.45,32.05,33.23,34.4],"gen_crash":[15.9,17.86,18.76,19.09,20.08,21.91,22.89,24.41,25.69,26.61,29.2,29.4,30.62,31.15,33.07,33.78,36.01,35.75,36.94,39.85,41.94,42.05,44.12,46.17,47.21,49.43,51.47,52.85,54.57,57.11,58.07,59.99,62.04],"gen_logged":[15.76,17.72,18.53,18.83,19.7,21.36,22.19,23.4,24.67,25.29,27.56,27.53,28.3,28.8,30.15,30.33,32.26,31.74,32.44,34.9,36.13,35.37,37.34,38.83,39.08,40.75,42.32,42.66,44.13,45.76,45.83,47.09,48.44],"gen_past":[15.76,17.34,18.0,18.65,19.35,20.62,21.82,22.75,23.8,24.7,26.58,26.1,27.5,27.72,28.7,29.29,30.84,30.88,30.59,32.31,33.36,33.69,34.2,34.97,35.46,36.78,37.65,38.3,39.09,40.17,40.22,41.34,42.14],"gap_crash":13.98,"gap_past":-2.97,"gap_pm0":1.41,"caught_pm":true,"alarm_logged_released":true}],"released":[["OmniNWM",1.02,0.98,1.08,0.23,0.12,0.6],["Vista",1.04,0.97,1.13,null,null,null],["SparseWorld-TC",1.01,0.99,1.07,0.07,0.04,0.14],["DOME",0.91,0.73,1.03,0.0,0.0,0.11],["I\u00b2-World",0.54,0.3,0.71,0.0,0.0,0.0]],"objmodels":[["whole plan",[0.68,0.62,0.61],true],["next 0.5 s",[0.74,0.72,0.66],true],["causal (past only)",[0.0,-0.01,0.0],false],["next 0.5 s, repaired",[-0.02,-0.02,-0.02],false]],"logs_coupling":0.67,"policy":[["true world",2.4],["causal",2.2],["next 0.5 s",6.2],["repaired",2.2]],"phantom":{"true":[0.96,0.52],"judged":[0.6,0.7]},"dose":{"sim":[{"0.0":1.55,"0.25":1.77,"0.5":2.15,"0.75":2.63,"1.0":7.88},{"0.0":1.5,"0.25":1.69,"0.5":2.17,"0.75":2.87,"1.0":11.57},{"0.0":1.52,"0.25":1.71,"0.5":2.09,"0.75":2.7,"1.0":6.69}],"real":[{"0.0":0.7,"1.0":1.0,"3.0":2.33},{"0.0":0.81,"1.0":0.78,"3.0":2.49},{"0.0":0.82,"1.0":0.86,"3.0":1.73}],"oracle":0.67},"n_caught_pm":16,"n_within1_past":15,"gap_crash_median":5.74}</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const C = { ink: '#1b1b1b', ink2: '#444444', ink3: '#737373', grid: '#ececec', leak: '#b94a3a', leakSoft: '#ecd3cd', causal: '#2c5b94', causalSoft: '#d2deec', stone: '#c9c3b6', well: '#f6f6f4', page: '#ffffff' };
+  const MONO = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace";
+  const NS = 'http://www.w3.org/2000/svg';
+  const minus = s => String(s).replace(/-/g, '−');
+  const f2 = v => minus(v.toFixed(2)), f1 = v => minus(v.toFixed(1));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function el(tag, a, p) { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  function tx(p, x, y, s, a) { const e = el('text', Object.assign({ x, y, 'font-family': MONO, 'font-size': 11, fill: C.ink3, stroke: C.page, 'stroke-width': 3, 'stroke-linejoin': 'round', 'paint-order': 'stroke' }, a || {}), p); e.textContent = s; return e; }
+  function lin(d0, d1, r0, r1) { return v => r0 + (v - d0) / (d1 - d0) * (r1 - r0); }
+  function svgIn(host, w, h, label) { host.innerHTML = ''; return el('svg', { width: w, height: h, viewBox: `0 0 ${w} ${h}`, role: 'img', 'aria-label': label }, host); }
+  function yAxis(s, y, ticks, fmt, left, right, title, ymid) {
+    for (const t of ticks) {
+      el('line', { x1: left, x2: right, y1: y(t), y2: y(t), stroke: C.grid, 'stroke-width': 1 }, s);
+      tx(s, left - 7, y(t) + 4, fmt(t), { 'text-anchor': 'end' });
+    }
+    el('line', { x1: left, x2: left, y1: y(ticks[0]), y2: y(ticks[ticks.length - 1]), stroke: C.ink, 'stroke-width': 1 }, s);
+    if (title) tx(s, 12, ymid, title, { 'text-anchor': 'middle', fill: C.ink2, 'font-size': 12, transform: `rotate(-90 12 ${ymid})` });
+  }
+  const tip = document.getElementById('tip');
+  function hover(node, html) {
+    node.addEventListener('pointerenter', e => { tip.innerHTML = html; tip.style.opacity = 1; move(e); });
+    node.addEventListener('pointermove', move);
+    node.addEventListener('pointerleave', () => { tip.style.opacity = 0; });
+  }
+  function move(e) {
+    const w = tip.offsetWidth, h = tip.offsetHeight; let x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  const S = D.scenes, byKey = {}; S.forEach(s => { byKey[s.scene + '_' + s.tok] = s; });
+  const CAR = 4.6;  // drawn car length (m)
+
+  /* ---------- synchronized video groups (one clock, shared controls) ---------- */
+  function syncGroup(root, onTime) {
+    const vids = [...root.querySelectorAll('video')], lead = vids[0];
+    const play = root.querySelector('[data-act="play"]'), speed = root.querySelector('[data-act="speed"]'), bar = root.querySelector('.progress i');
+    let rate = 1, paused = reduce;
+    function setPaused(p) { paused = p; vids.forEach(v => p ? v.pause() : v.play().catch(() => {})); play.textContent = p ? 'Play' : 'Pause'; }
+    play.addEventListener('click', () => setPaused(!paused));
+    speed.addEventListener('click', () => { rate = rate === 1 ? 0.5 : 1; vids.forEach(v => v.playbackRate = rate); speed.textContent = rate + '×'; });
+    lead.addEventListener('ended', () => { vids.forEach(v => { v.currentTime = 0; }); if (!paused) vids.forEach(v => v.play().catch(() => {})); });
+    vids.slice(1).forEach(v => v.addEventListener('ended', () => {}));
+    (function tick() {
+      const t = lead.currentTime || 0, d = lead.duration || 5.5;
+      bar.style.width = (100 * t / d) + '%';
+      vids.slice(1).forEach(v => { if (Math.abs(v.currentTime - t) > 0.12) v.currentTime = t; });
+      if (onTime) onTime(Math.min(32, Math.round(t * 6)));
+      requestAnimationFrame(tick);
+    })();
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!paused) vids.forEach(v => e.isIntersecting ? v.play().catch(() => {}) : v.pause()); }), { threshold: 0.2 });
+    io.observe(root);
+    return {
+      load(srcs) { vids.forEach((v, i) => { v.src = srcs[i]; v.playbackRate = rate; }); if (!paused) vids.forEach(v => v.play().catch(() => {})); },
+      init() { if (paused) play.textContent = 'Play'; else vids.forEach(v => v.play().catch(() => {})); }
+    };
+  }
+
+  /* ---------- hero: road strip under the two videos ---------- */
+  function roadStrip(host, s, opts) {
+    const W = host.clientWidth || 900, H = W < 600 ? 74 : 84;
+    const sv = svgIn(host, W, H, 'Bird\'s-eye positions along the lane');
+    const xmax = Math.max(...s.real, ...s.gen_crash.filter(v => v != null)) + CAR + 4;
+    const x = lin(-1, xmax, 14, W - 14), mid = H / 2 + 4, ch = 16;
+    el('rect', { x: 0, y: mid - 22, width: W, height: 44, fill: C.well }, sv);
+    el('line', { x1: 0, x2: W, y1: mid - 22, y2: mid - 22, stroke: C.stone }, sv);
+    el('line', { x1: 0, x2: W, y1: mid + 22, y2: mid + 22, stroke: C.stone }, sv);
+    for (let m = 0; m <= xmax; m += 5) { el('line', { x1: x(m), x2: x(m), y1: mid + 22, y2: mid + 26, stroke: C.ink3 }, sv); if (m % 10 === 0) tx(sv, x(m), mid + 37, m + ' m', { 'text-anchor': 'middle', 'font-size': 10 }); }
+    const ego = el('rect', { y: mid - ch / 2, height: ch, width: x(CAR) - x(0), fill: C.leak, 'fill-opacity': .85, rx: 2 }, sv);
+    const real = el('rect', { y: mid - ch / 2, height: ch, width: x(CAR) - x(0), fill: 'none', stroke: C.ink, 'stroke-width': 2 }, sv);
+    const crash = el('rect', { y: mid - ch / 2 - 1, height: ch + 2, width: x(CAR) - x(0), fill: C.leakSoft, 'fill-opacity': .5, stroke: C.leak, 'stroke-width': 2, 'stroke-dasharray': '5 3' }, sv);
+    const past = el('rect', { y: mid - ch / 2 + 1, height: ch - 2, width: x(CAR) - x(0), fill: 'none', stroke: C.causal, 'stroke-width': 2, 'stroke-dasharray': '2 2' }, sv);
+    const lab = tx(sv, 14, 16, '', { fill: C.ink2, 'font-size': W < 600 ? 10 : 11 });
+    const lr = tx(sv, 0, mid - 13, 'real car', { 'text-anchor': 'middle', 'font-size': 10, fill: C.ink });
+    const le = tx(sv, 0, mid + 4, 'ego', { 'text-anchor': 'middle', 'font-size': 10, fill: C.page, stroke: 'none' });
+    return function (k) {
+      const ef = s.ego[k], r = s.real[k], g = s.gen_crash[k], p = s.gen_past[k];
+      ego.setAttribute('x', x(ef - CAR)); le.setAttribute('x', x(ef - CAR / 2));
+      real.setAttribute('x', x(r)); lr.setAttribute('x', x(r + CAR / 2));
+      crash.setAttribute('visibility', g == null ? 'hidden' : 'visible'); if (g != null) crash.setAttribute('x', x(g));
+      past.setAttribute('visibility', p == null ? 'hidden' : 'visible'); if (p != null) past.setAttribute('x', x(p));
+      const hit = r - ef <= 0;
+      const gg = g == null ? '–' : f1(g - ef) + ' m', pp = p == null ? '–' : f1(p - ef) + ' m';
+      lab.textContent = W < 640 ? `t ${s.t[k].toFixed(2)} s${hit ? ' · hit' : ''} · OmniNWM's car ${gg} · repaired ${pp}`
+        : `t = ${s.t[k].toFixed(2)} s   ` + (hit ? 'the real car is hit · ' : '') + `OmniNWM's car ${gg} ahead of the ego · repaired world ${pp}`;
+    };
+  }
+  (function () {
+    const s = byKey['scene-0780_ad26'], host = document.getElementById('hero-road');
+    let upd = roadStrip(host, s), last = 0;
+    const g = syncGroup(document.getElementById('hero'), k => { last = k; upd(k); });
+    g.init();
+    addEventListener('resize', () => { upd = roadStrip(host, s); upd(last); });
+    const leg = document.createElement('div'); leg.className = 'legend'; leg.style.marginTop = '8px';
+    leg.innerHTML = '<span><i class="sw leak"></i>ego, crashing plan</span><span><i class="sw" style="border:2px solid var(--ink);width:9px;height:9px"></i>real car</span><span><i class="ln leak dash"></i>OmniNWM\'s car</span><span><i class="ln causal dash"></i>repaired world\'s car</span>';
+    host.after(leg);
+  })();
+
+  /* ---------- overview minis ---------- */
+  (function () {
+    const s = document.getElementById('ov-q'); s.setAttribute('viewBox', '0 0 240 180');
+    el('rect', { x: 0, y: 0, width: 240, height: 180, fill: C.well }, s);
+    tx(s, 120, 40, 'planner asks', { 'text-anchor': 'middle', fill: C.ink2 });
+    tx(s, 120, 62, 'p(future | do(plan))', { 'text-anchor': 'middle', fill: C.causal, 'font-size': 13, 'font-weight': 500, stroke: C.well });
+    el('line', { x1: 40, x2: 200, y1: 90, y2: 90, stroke: C.stone }, s);
+    tx(s, 120, 120, 'logs teach', { 'text-anchor': 'middle', fill: C.ink2, stroke: C.well });
+    tx(s, 120, 142, 'p(future | plan)', { 'text-anchor': 'middle', fill: C.leak, 'font-size': 13, 'font-weight': 500, stroke: C.well });
+  })();
+  (function () {
+    const s = document.getElementById('ov-test'); s.setAttribute('viewBox', '0 0 240 180');
+    const lane = (y, egoX, carX, col, lab) => {
+      el('rect', { x: 10, y: y - 16, width: 220, height: 32, fill: C.page }, s);
+      el('rect', { x: egoX, y: y - 7, width: 34, height: 14, fill: col, rx: 2 }, s);
+      el('rect', { x: carX, y: y - 7, width: 34, height: 14, fill: 'none', stroke: C.ink, 'stroke-width': 1.6 }, s);
+      tx(s, 14, y - 21, lab, { 'font-size': 10, fill: C.ink2, stroke: C.well });
+    };
+    el('rect', { x: 0, y: 0, width: 240, height: 180, fill: C.well }, s);
+    lane(55, 30, 150, C.stone, 'logged plan');
+    lane(130, 120, 150, C.leak, 'counterfactual plan');
+    el('line', { x1: 64, x2: 154, y1: 152, y2: 152, stroke: C.leak, 'stroke-width': 1.2, 'marker-end': 'url(#ah)' }, s);
+    const m = el('marker', { id: 'ah', viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: 'auto' }, el('defs', {}, s));
+    el('path', { d: 'M0 0L8 4L0 8z', fill: C.leak }, m);
+    tx(s, 109, 170, 'only the plan changes', { 'text-anchor': 'middle', 'font-size': 10, stroke: C.well });
+  })();
+  (function () {
+    const s = document.getElementById('ov-find'); s.setAttribute('viewBox', '0 0 240 180');
+    el('rect', { x: 0, y: 0, width: 240, height: 180, fill: C.well }, s);
+    const r = D.released[0], y = lin(0, 1.2, 150, 22);
+    el('line', { x1: 40, x2: 220, y1: y(1), y2: y(1), stroke: C.ink3, 'stroke-dasharray': '3 3' }, s);
+    tx(s, 218, y(1) - 5, 'gap never closes', { 'text-anchor': 'end', 'font-size': 9.5, stroke: C.well });
+    [[r[1], C.leak, 'car ahead', 70], [r[4], C.causal, 'parked', 150]].forEach(([v, c, l, x0]) => {
+      el('rect', { x: x0, y: y(v), width: 40, height: y(0) - y(v), fill: c }, s);
+      tx(s, x0 + 20, y(v) - 6, v.toFixed(2), { 'text-anchor': 'middle', fill: C.ink, 'font-size': 12, stroke: C.well });
+      tx(s, x0 + 20, 168, l, { 'text-anchor': 'middle', 'font-size': 10, stroke: C.well });
+    });
+    el('line', { x1: 40, x2: 220, y1: y(0), y2: y(0), stroke: C.ink }, s);
+    tx(s, 44, 22, 'β, OmniNWM', { 'font-size': 10, stroke: C.well });
+  })();
+  (function () {
+    const s = document.getElementById('ov-fix'); s.setAttribute('viewBox', '0 0 240 180');
+    el('rect', { x: 0, y: 0, width: 240, height: 180, fill: C.well }, s);
+    const n = S.length, caught = D.n_caught_pm;
+    for (let i = 0; i < n; i++) {
+      const c = i % 6, r = Math.floor(i / 6), x0 = 34 + c * 30, y0 = 34 + r * 38;
+      el('rect', { x: x0, y: y0, width: 22, height: 26, rx: 2, fill: i < caught ? C.causal : C.stone }, s);
+    }
+    tx(s, 120, 168, `${caught} of ${n} crashes shown`, { 'text-anchor': 'middle', fill: C.ink, 'font-size': 11, stroke: C.well });
+    document.getElementById('ov-fix-cap').textContent = `Past-only queries bring the crash back in ${caught} of ${n} scenes.`;
+  })();
+
+  /* ---------- toy: beta slider ---------- */
+  (function () {
+    const host = document.getElementById('toy'), inp = document.getElementById('beta'), out = document.getElementById('beta-out');
+    function draw() {
+      const b = +inp.value; out.textContent = b.toFixed(2);
+      const W = host.clientWidth, H = 190, sv = svgIn(host, W, H, 'Crash check under plan leak ' + b.toFixed(2));
+      const real = 20, extra = 7, logEgo = real - extra + 1, cfEgo = real + 1;   // ego fronts at the real contact
+      const x = lin(0, 36, 50, W - 20);
+      const row = (y, ef, carRear, col, lab, sub) => {
+        el('rect', { x: x(0), y: y - 20, width: x(36) - x(0), height: 40, fill: C.well }, sv);
+        el('rect', { x: x(real), y: y - 9, width: x(CAR) - x(0), height: 18, fill: 'none', stroke: C.ink, 'stroke-width': 1.2, 'stroke-dasharray': '3 3' }, sv);
+        el('rect', { x: x(carRear), y: y - 9, width: x(CAR) - x(0), height: 18, fill: C.page, stroke: C.ink, 'stroke-width': 2 }, sv);
+        el('rect', { x: x(ef - CAR), y: y - 9, width: x(CAR) - x(0), height: 18, fill: col, rx: 2 }, sv);
+        tx(sv, 44, y + 4, lab, { 'text-anchor': 'end', fill: C.ink2, 'font-size': W < 520 ? 9.5 : 11 });
+        tx(sv, x(36), y - 25, sub, { 'text-anchor': 'end', fill: C.ink2, 'font-size': W < 520 ? 9.5 : 11 });
+      };
+      row(48, logEgo, real, C.stone, 'logged', 'imagined gap ' + f1(real - logEgo) + ' m');
+      const carCf = real + b * extra, gap = carCf - cfEgo;
+      row(132, cfEgo, carCf, C.leak, 'crash', gap <= 0 ? 'imagined gap ' + f1(gap) + ' m · crash visible' : 'imagined gap ' + f1(gap) + ' m · crash hidden');
+      tx(sv, x(real) + 2, 182, 'dashed: where the real car is', { 'font-size': 10 });
+    }
+    inp.addEventListener('input', draw); addEventListener('resize', draw); draw();
+  })();
+
+  /* ---------- scene explorer ---------- */
+  let cur = byKey['scene-0780_ad26'], gapPlay = () => {};
+  const tri = syncGroup(document.getElementById('three'), k => gapPlay(k));
+  const pair = syncGroup(document.getElementById('pair'));
+  function gapChart(s) {
+    const host = document.getElementById('gapchart'), W = host.clientWidth, H = W < 600 ? 230 : 270;
+    const sv = svgIn(host, W, H, 'Positions along the lane over time, ' + s.scene);
+    const L = W < 600 ? 46 : 58, R = 16, T = 14, B = 34;
+    const vals = [].concat(s.real, s.ego, s.gen_crash, s.gen_logged, s.gen_past).filter(v => v != null);
+    const lo = Math.floor(Math.min(...vals) / 5) * 5, hi = Math.ceil(Math.max(...vals) / 5) * 5;
+    const x = lin(0, s.t[s.t.length - 1], L, W - R), y = lin(lo, hi, H - B, T);
+    const ticks = []; for (let v = lo; v <= hi; v += (hi - lo > 30 ? 10 : 5)) ticks.push(v);
+    yAxis(sv, y, ticks, v => v, L, W - R, 'metres ahead', (H - B + T) / 2);
+    el('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: C.ink }, sv);
+    [0, 0.5, 1, 1.5, 2, 2.5].forEach(t => { if (t <= s.t[s.t.length - 1]) { el('line', { x1: x(t), x2: x(t), y1: H - B, y2: H - B + 4, stroke: C.ink }, sv); tx(sv, x(t), H - B + 17, t + ' s', { 'text-anchor': 'middle' }); } });
+    const path = (arr, col, w, dash) => {
+      let d = '', pen = false;
+      arr.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(s.t[i]).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; });
+      el('path', Object.assign({ d, fill: 'none', stroke: col, 'stroke-width': w, 'stroke-linejoin': 'round' }, dash ? { 'stroke-dasharray': dash } : {}), sv);
+    };
+    path(s.gen_logged, C.stone, 2); path(s.gen_past, C.causal, 2); path(s.gen_crash, C.leak, 2); path(s.ego, C.leak, 1.6, '5 3'); path(s.real, C.ink, 2);
+    el('circle', { cx: x(s.t[s.k]), cy: y(s.real[s.k]), r: 5, fill: C.ink, stroke: C.page, 'stroke-width': 2 }, sv);
+    tx(sv, x(s.t[s.k]) - 8, y(s.real[s.k]) + 18, 'real contact', { 'text-anchor': 'end', fill: C.ink });
+    const ph = el('line', { x1: L, x2: L, y1: T, y2: H - B, stroke: C.ink3, 'stroke-width': 1 }, sv);
+    gapPlay = k => { const xx = x(s.t[Math.min(k, s.t.length - 1)]); ph.setAttribute('x1', xx); ph.setAttribute('x2', xx); };
+  }
+  function pickScene(s, scroll) {
+    cur = s;
+    const base = 'assets/v/' + s.scene + '_' + s.tok + '_';
+    tri.load([base + 'logged.mp4', base + 'crash.mp4', base + 'pastonly.mp4']);
+    pair.load([base + 'plan.mp4', base + 'repair.mp4']);
+    document.querySelectorAll('#pick .tbtn').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === s.scene + '_' + s.tok ? 'true' : 'false'));
+    gapChart(s);
+    const g = v => v == null ? 'not readable' : f1(v) + ' m';
+    document.getElementById('scene-readout').innerHTML = `<b>${s.scene}</b> · car ahead ${s.stopped ? 'stopped' : 'moving'} · extra acceleration ${s.a} m/s² · β ${s.beta == null ? 'not measurable' : f2(s.beta)}`;
+    document.getElementById('pair-readout').innerHTML = `<b>${s.scene}</b> · gap at the real contact: conditioned on the crashing plan <b>${g(s.gap_crash)}</b>, past-only world <b>${g(s.gap_past)}</b> · past-only crash check ${s.caught_pm ? 'catches the crash' : 'misses it'}`;
+    drawDumbbell();
+    if (scroll) document.getElementById('omninwm').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  }
+  (function () {
+    const host = document.getElementById('pick');
+    S.forEach(s => {
+      const b = document.createElement('button'); b.className = 'tbtn'; b.type = 'button'; b.dataset.k = s.scene + '_' + s.tok;
+      b.innerHTML = s.scene.replace('scene-', '') + (S.filter(o => o.scene === s.scene).length > 1 ? '·' + s.tok.slice(0, 2) : '') + (s.stopped ? '<span class="st" aria-label="stopped car">▲</span>' : '');
+      b.setAttribute('aria-label', s.scene + (s.stopped ? ', car ahead stopped' : ', car ahead moving'));
+      b.addEventListener('click', () => pickScene(s));
+      host.appendChild(b);
+    });
+    tri.init(); pair.init();
+    pickScene(cur);
+    addEventListener('resize', () => gapChart(cur));
+  })();
+
+  /* ---------- released models ---------- */
+  function drawReleased() {
+    const host = document.getElementById('released'), W = host.clientWidth, H = 260, L = 50, R = 10, T = 14, B = 40;
+    const sv = svgIn(host, W, H, 'Plan leak of released world models');
+    const y = lin(0, 1.4, H - B, T), n = D.released.length, bw = (W - L - R) / n;
+    yAxis(sv, y, [0, 0.5, 1, 1.4], v => v.toFixed(1), L, W - R, 'β', (H - B + T) / 2);
+    el('line', { x1: L, x2: W - R, y1: y(1), y2: y(1), stroke: C.ink3, 'stroke-dasharray': '4 3' }, sv);
+    tx(sv, W - R, y(1) - 6, 'gap never closes', { 'text-anchor': 'end' });
+    D.released.forEach((r, i) => {
+      const cx = L + bw * (i + .5), w = Math.min(34, bw * .3);
+      [[r[1], r[2], r[3], C.leak, -1, 'car ahead'], [r[4], r[5], r[6], C.causal, 1, 'parked cars']].forEach(([v, lo, hi, col, side, lab]) => {
+        if (v == null) { tx(sv, cx + side * (w / 2 + 2), y(0) - 6, 'n/a', { 'text-anchor': 'middle', 'font-size': 10 }); return; }
+        const x0 = cx + (side < 0 ? -w - 2 : 2), g = el('g', {}, sv);
+        el('rect', { x: x0, y: y(Math.max(v, 0.012)), width: w, height: y(0) - y(Math.max(v, 0.012)), fill: col }, g);
+        el('line', { x1: x0 + w / 2, x2: x0 + w / 2, y1: y(lo), y2: y(hi), stroke: C.ink, 'stroke-width': 1.2 }, g);
+        tx(sv, x0 + w / 2, y(hi) - 6, v.toFixed(2), { 'text-anchor': 'middle', fill: C.ink, 'font-size': 10.5 });
+        el('rect', { x: x0 - 3, y: T, width: w + 6, height: H - B - T, fill: 'transparent' }, g);
+        hover(g, `<b>${r[0]}</b>, ${lab}<br>β ${f2(v)} [${f2(lo)}, ${f2(hi)}]`);
+      });
+      tx(sv, cx, H - B + 18, r[0] + (r[0] === 'Vista' ? '*' : ''), { 'text-anchor': 'middle', fill: C.ink, 'font-size': W < 520 ? 9.5 : 11 });
+    });
+    el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: C.ink }, sv);
+  }
+
+  /* ---------- mechanism: which plan steps the model sees ---------- */
+  let mode = 0;
+  function drawMech() {
+    const host = document.getElementById('mech'), W = host.clientWidth, narrow = W < 600, H = narrow ? 300 : 230;
+    const sv = svgIn(host, W, H, 'Plan steps visible to the model and its plan leak');
+    const steps = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6], vis = [s => true, s => s <= 1, s => s <= 0, s => s <= 1][mode];
+    const tw = narrow ? W : W * 0.56, cw = (tw - 20) / steps.length;
+    tx(sv, 10, 18, 'ego plan steps (0.5 s each) seen when generating t + 1', { fill: C.ink2 });
+    steps.forEach((s, i) => {
+      const x0 = 10 + i * cw, on = vis(s), fut = s >= 1;
+      el('rect', { x: x0 + 2, y: 34, width: cw - 4, height: 34, rx: 2, fill: on ? (fut ? C.leak : C.ink) : C.page, stroke: on ? 'none' : C.stone, 'stroke-dasharray': on ? '' : '3 2' }, sv);
+      tx(sv, x0 + cw / 2, 86, s === 0 ? 't' : (s > 0 ? 't+' + s : 't' + minus(String(s))), { 'text-anchor': 'middle', 'font-size': narrow ? 9 : 11 });
+    });
+    el('line', { x1: 10 + 3.5 * cw + cw / 2, x2: 10 + 3.5 * cw + cw / 2, y1: 28, y2: 74, stroke: C.ink, 'stroke-width': 1.2 }, sv);
+    tx(sv, 10 + 4 * cw + 2, 104, 'future: how the driver will react', { fill: C.leak, 'font-size': narrow ? 9.5 : 11 });
+    if (mode === 3) tx(sv, 10, 124, 'repaired: plan shown up to t, continuations averaged (g-computation)', { fill: C.causal, 'font-size': narrow ? 9.5 : 11 });
+    // beta bars for all four models, current highlighted
+    const bx0 = narrow ? 76 : tw + 110, by0 = narrow ? 150 : 24, bw = narrow ? W - 110 : W - tw - 150, bh = narrow ? 130 : 170;
+    const x = lin(-0.1, 1.0, bx0, bx0 + bw), rowH = bh / 4;
+    el('line', { x1: x(0), x2: x(0), y1: by0, y2: by0 + bh, stroke: C.ink }, sv);
+    el('line', { x1: x(D.logs_coupling), x2: x(D.logs_coupling), y1: by0, y2: by0 + bh, stroke: C.ink3, 'stroke-dasharray': '4 3' }, sv);
+    tx(sv, x(D.logs_coupling) + 4, by0 + bh + 14, 'coupling in the logs ' + D.logs_coupling, { 'font-size': 10 });
+    tx(sv, x(0), by0 + bh + 14, '0', { 'text-anchor': 'middle', 'font-size': 10 });
+    D.objmodels.forEach((m, i) => {
+      const mean = m[1].reduce((a, b) => a + b, 0) / 3, yy = by0 + i * rowH + rowH / 2, on = i === mode;
+      const col = m[2] ? C.leak : C.causal;
+      el('rect', { x: Math.min(x(0), x(mean)), y: yy - 7, width: Math.max(2, Math.abs(x(mean) - x(0))), height: 14, fill: col, 'fill-opacity': on ? 1 : 0.28 }, sv);
+      m[1].forEach(v => el('circle', { cx: x(v), cy: yy, r: 2.6, fill: C.ink, 'fill-opacity': on ? 1 : .35 }, sv));
+      tx(sv, x(Math.max(mean, 0)) + 8, yy + 4, minus(mean.toFixed(2)).replace('−0.00', '0.00'), { fill: on ? C.ink : C.ink3, 'font-size': 11 });
+      tx(sv, bx0 - 6, yy + 4, ['whole', 'next 0.5 s', 'causal', 'repaired'][i], { 'text-anchor': 'end', fill: on ? C.ink : C.ink3, 'font-size': narrow ? 9.5 : 10.5 });
+    });
+    tx(sv, bx0, by0 - 8, 'plan leak β', { fill: C.ink2, 'font-size': 11 });
+  }
+  document.querySelectorAll('#mech-tools .tbtn').forEach(b => b.addEventListener('click', () => {
+    mode = +b.dataset.m; document.querySelectorAll('#mech-tools .tbtn').forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false')); drawMech();
+  }));
+
+  /* ---------- cost charts ---------- */
+  function drawPolicy() {
+    const host = document.getElementById('policy'), W = host.clientWidth, H = 230, L = 48, R = 10, T = 14, B = 38;
+    const sv = svgIn(host, W, H, 'Real crash rate of policies trained in each model');
+    const y = lin(0, 7, H - B, T), n = D.policy.length, bw = (W - L - R) / n;
+    yAxis(sv, y, [0, 2, 4, 6], v => v + '%', L, W - R, 'real crash rate', (H - B + T) / 2);
+    const col = [C.stone, C.causal, C.leak, C.causal];
+    D.policy.forEach((p, i) => {
+      const cx = L + bw * (i + .5), w = Math.min(44, bw * .55), g = el('g', {}, sv);
+      el('rect', { x: cx - w / 2, y: y(p[1]), width: w, height: y(0) - y(p[1]), fill: col[i] }, g);
+      tx(sv, cx, y(p[1]) - 6, p[1].toFixed(1) + '%', { 'text-anchor': 'middle', fill: C.ink, 'font-size': 11 });
+      tx(sv, cx, H - B + 17, p[0], { 'text-anchor': 'middle', fill: C.ink, 'font-size': W < 420 ? 9 : 10.5 });
+      el('rect', { x: cx - w / 2 - 4, y: T, width: w + 8, height: H - B - T, fill: 'transparent' }, g);
+      hover(g, `<b>trained in: ${p[0]}</b><br>${p[1].toFixed(1)}% real crashes`);
+    });
+    el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: C.ink }, sv);
+  }
+  function drawPhantom() {
+    const host = document.getElementById('phantom'), W = host.clientWidth, H = 240, L = 48, R = 10, T = 40, B = 38;
+    const sv = svgIn(host, W, H, 'Share of states where braking or cruising is safe, truly and as judged');
+    const y = lin(0, 1, H - B, T), bw = (W - L - R) / 2;
+    yAxis(sv, y, [0, .5, 1], v => (100 * v) + '%', L, W - R, 'plan is safe', (H - B + T) / 2);
+    ['brake (−2 m/s²)', 'cruise'].forEach((lab, i) => {
+      const cx = L + bw * (i + .5), w = Math.min(36, bw * .3);
+      [['true', C.stone, -1, 'truly safe'], ['judged', C.leak, 1, 'judged safe']].forEach(([k, col, side, l]) => {
+        const v = D.phantom[k][i], x0 = cx + (side < 0 ? -w - 2 : 2), g = el('g', {}, sv);
+        el('rect', { x: x0, y: y(v), width: w, height: y(0) - y(v), fill: col }, g);
+        tx(sv, x0 + w / 2, y(v) - 6, Math.round(100 * v) + '', { 'text-anchor': 'middle', fill: C.ink, 'font-size': 10.5 });
+        el('rect', { x: x0 - 2, y: T, width: w + 4, height: H - B - T, fill: 'transparent' }, g);
+        hover(g, `<b>${lab}</b>, ${l}<br>${Math.round(100 * v)}% of states`);
+      });
+      tx(sv, cx, H - B + 17, lab, { 'text-anchor': 'middle', fill: C.ink, 'font-size': 10.5 });
+    });
+    el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), stroke: C.ink }, sv);
+    const lg = el('g', {}, sv);
+    el('rect', { x: L + 8, y: 6, width: 10, height: 10, fill: C.stone }, lg); tx(lg, L + 22, 15, 'truly safe', { fill: C.ink2 });
+    el('rect', { x: L + 110, y: 6, width: 10, height: 10, fill: C.leak }, lg); tx(lg, L + 124, 15, 'judged safe', { fill: C.ink2 });
+  }
+  function doseChart(id, curves, ks, ylab, ymax, oracle, band) {
+    const host = document.getElementById(id), W = host.clientWidth, H = 230, L = 48, R = 14, T = 14, B = 38;
+    const sv = svgIn(host, W, H, ylab + ' against leak dose');
+    const kmax = ks[ks.length - 1], x = lin(0, kmax, L, W - R), y = lin(0, ymax, H - B, T);
+    const ticks = []; for (let v = 0; v <= ymax + 1e-9; v += ymax > 6 ? 4 : 1) ticks.push(v);
+    yAxis(sv, y, ticks, v => v, L, W - R, ylab, (H - B + T) / 2);
+    el('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: C.ink }, sv);
+    ks.forEach(k => { el('line', { x1: x(k), x2: x(k), y1: H - B, y2: H - B + 4, stroke: C.ink }, sv); tx(sv, x(k), H - B + 17, 'k=' + k, { 'text-anchor': 'middle', 'font-size': 10 }); });
+    const val = (c, k) => c[k % 1 ? String(k) : k.toFixed(1)];
+    if (band) {
+      const top = ks.map(k => Math.max(...curves.map(c => val(c, k)))), bot = ks.map(k => Math.min(...curves.map(c => val(c, k))));
+      el('polygon', { points: ks.map((k, i) => `${x(k)},${y(top[i])}`).join(' ') + ' ' + ks.map((k, i) => `${x(k)},${y(bot[i])}`).reverse().join(' '), fill: C.leakSoft }, sv);
+    } else {
+      curves.forEach(c => el('polyline', { points: ks.map(k => `${x(k)},${y(val(c, k))}`).join(' '), fill: 'none', stroke: C.leak, 'stroke-opacity': .4, 'stroke-width': 1.2 }, sv));
+    }
+    if (oracle != null) { el('line', { x1: L, x2: W - R, y1: y(oracle), y2: y(oracle), stroke: C.ink3, 'stroke-dasharray': '4 3' }, sv); tx(sv, W - R, y(oracle) + 14, 'true-effect planner', { 'text-anchor': 'end', 'font-size': 10 }); }
+    const m = ks.map(k => curves.reduce((a, c) => a + val(c, k), 0) / curves.length);
+    el('polyline', { points: ks.map((k, i) => `${x(k)},${y(m[i])}`).join(' '), fill: 'none', stroke: C.leak, 'stroke-width': 2 }, sv);
+    ks.forEach((k, i) => {
+      const g = el('g', {}, sv);
+      el('circle', { cx: x(k), cy: y(m[i]), r: 4, fill: C.leak, stroke: C.page, 'stroke-width': 2 }, g);
+      el('circle', { cx: x(k), cy: y(m[i]), r: 12, fill: 'transparent' }, g);
+      hover(g, `<b>k = ${k}</b><br>mean ${m[i].toFixed(2)}<br>seeds ${curves.map(c => val(c, k).toFixed(2)).join(' · ')}`);
+    });
+  }
+
+  /* ---------- repair dumbbell ---------- */
+  function drawDumbbell() {
+    const host = document.getElementById('dumbbell'), W = host.clientWidth, narrow = W < 600, rowH = 19;
+    const rows = S.filter(s => s.gap_crash != null || s.gap_past != null).slice().sort((a, b) => (b.gap_crash ?? 99) - (a.gap_crash ?? 99));
+    const L = narrow ? 92 : 120, R = 16, T = 30, H = T + rows.length * rowH + 30;
+    const sv = svgIn(host, W, H, 'Gap at the real contact per scene, crashing-plan world against past-only world');
+    const x = lin(-8, 21, L, W - R);
+    el('rect', { x: x(-8), y: T - 4, width: x(1) - x(-8), height: H - 26 - T + 4, fill: C.causalSoft, 'fill-opacity': .45 }, sv);
+    [-5, 0, 5, 10, 15, 20].forEach(v => { el('line', { x1: x(v), x2: x(v), y1: T - 4, y2: H - 26, stroke: v === 0 ? C.ink : C.grid }, sv); tx(sv, x(v), H - 10, v + ' m', { 'text-anchor': 'middle', 'font-size': 10 }); });
+    tx(sv, x(1) - 4, T - 10, 'within 1 m: crash shown', { 'text-anchor': 'end', 'font-size': 10, fill: C.causal });
+    tx(sv, x(1) + 8, T - 10, 'car kept ahead of the ego →', { 'font-size': 10, fill: C.leak });
+    rows.forEach((s, i) => {
+      const yy = T + i * rowH + rowH / 2, on = s === cur, g = el('g', { style: 'cursor:pointer' }, sv);
+      if (on) el('rect', { x: 0, y: yy - rowH / 2, width: W, height: rowH, fill: C.well }, g);
+      const a = s.gap_crash, b = s.gap_past;
+      if (a != null && b != null) el('line', { x1: x(Math.min(a, 21)), x2: x(b), y1: yy, y2: yy, stroke: C.stone, 'stroke-width': 2 }, g);
+      if (a != null) el('circle', { cx: x(Math.min(a, 21)), cy: yy, r: 5, fill: C.leak, stroke: C.page, 'stroke-width': 1.5 }, g);
+      if (b != null) el('circle', { cx: x(Math.max(b, -8)), cy: yy, r: 5, fill: C.causal, stroke: C.page, 'stroke-width': 1.5 }, g);
+      tx(g, L - 10, yy + 4, s.scene.replace('scene-', 'scene ') + (S.filter(o => o.scene === s.scene).length > 1 ? '·' + s.tok.slice(0, 2) : '') + (s.stopped ? ' ▲' : ''), { 'text-anchor': 'end', fill: on ? C.ink : C.ink2, 'font-size': narrow ? 9.5 : 11 });
+      el('rect', { x: 0, y: yy - rowH / 2, width: W, height: rowH, fill: 'transparent' }, g);
+      const fmt = v => v == null ? 'not readable' : f1(v) + ' m';
+      hover(g, `<b>${s.scene}</b> (${s.stopped ? 'stopped' : 'moving'} car)<br>crashing plan: ${fmt(a)}<br>past-only world: ${fmt(b)}`);
+      g.addEventListener('click', () => pickScene(s, true));
+    });
+  }
+
+  function drawAll() {
+    drawReleased(); drawMech(); drawPolicy(); drawPhantom();
+    doseChart('dose-sim', D.dose.sim, [0, 0.25, 0.5, 0.75, 1], 'hard brakes / episode', 12, null, true);
+    doseChart('dose-real', D.dose.real, [0, 1, 3], 'near-misses / episode', 3, D.dose.oracle, false);
+    drawDumbbell();
+  }
+  drawAll();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+
+  document.getElementById('copybib').addEventListener('click', e => {
+    const b = e.currentTarget, txt = document.getElementById('bibtex').textContent;
+    const ok = () => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1500); };
+    try { navigator.clipboard.writeText(txt).then(ok, () => sel()); } catch (err) { sel(); }
+    function sel() { const r = document.createRange(); r.selectNodeContents(document.getElementById('bibtex')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected'; }
+  });
+
+  /* side-nav highlight */
+  const links = [...document.querySelectorAll('.side-nav a')], secs = links.map(a => document.querySelector(a.getAttribute('href')));
+  addEventListener('scroll', () => {
+    let i = 0; secs.forEach((s, j) => { if (s.getBoundingClientRect().top < 140) i = j; });
+    links.forEach((a, j) => a.classList.toggle('active', j === i));
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
