@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
-<meta name="googlebot" content="noindex, nofollow">
 <style>img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Plans Are Not Interventions</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -80,6 +78,8 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px s
 
 .link-row { font-family: var(--sans); font-size: 16px; text-align: center; margin: 26px 0 44px; color: var(--ink-3); display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 36px; }
 .link-row .soon { border-bottom: 1px solid var(--stone); padding-bottom: 2px; white-space: nowrap; }
+.link-row a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--ink); padding-bottom: 2px; white-space: nowrap; }
+.link-row a em { font-style: normal; font-family: var(--mono); font-size: 12px; margin-left: 6px; }
 .link-row .soon em { font-style: normal; font-family: var(--mono); font-size: 12px; margin-left: 6px; }
 
 /* overview strip */
@@ -210,7 +210,9 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px s
   <div class="authors">
     <p class="author-list"><span class="name">Sahil Apage<sup>1</sup></span>, <span class="name">Medhansh Abhilash<sup>1</sup></span></p>
     <p class="affiliation-list"><sup>1</sup>Veermata Jijabai Technological Institute (VJTI), Mumbai</p>
+    <p class="affiliation-list" style="margin-top:10px">Accepted (Spotlight + Poster) at the CoRL 2026 Workshop on Grounded 4D Multimodal World Models for Autonomous Driving Decision Making</p>
   </div>
+  <p class="link-row"><a href="assets/Plans_Are_Not_Interventions_CoRL2026_camera_ready.pdf">Paper<em>PDF</em></a><a href="https://anonymous.4open.science/r/plan-leak-supplement-33B2/">Code<em>supplement</em></a><span class="soon">Videos<em>all 18 scenes below</em></span></p>
 
   <div class="vgrid n2" id="hero">
     <div class="stage"><video src="assets/v/scene-0780_ad26_plan.mp4" muted playsinline preload="auto" aria-label="OmniNWM's generated front camera for a plan that drives into the stopped car ahead"></video><span class="badge leak">OmniNWM · crashing plan</span></div>
@@ -224,7 +226,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px s
   <div class="road" id="hero-road"></div>
   <p class="teaser-caption">The plan accelerates into a car stopped at a red light. OmniNWM keeps that car ahead of the ego, so the crash never appears. The repaired world, seen from the same cameras, puts the car back. Bird's-eye strip: where each world places the car, against the real one. Held-out nuScenes, released weights, half speed.</p>
 
-  <p class="link-row"><span class="soon">Paper<em>coming soon</em></span><span class="soon">Code<em>coming soon</em></span><span class="soon">Videos<em>all 18 scenes below</em></span></p>
 
   <figure class="overview">
     <div class="ov-grid">
@@ -411,7 +412,9 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px s
   title  = {Plans Are Not Interventions: Measuring and Repairing
             Plan Leakage in Driving World Models},
   author = {Apage, Sahil and Abhilash, Medhansh},
-  year   = {2026}
+  year   = {2026},
+  note   = {CoRL 2026 Workshop on Grounded 4D Multimodal World
+            Models for Autonomous Driving Decision Making}
 }</pre>
     <button class="tbtn" type="button" id="copybib">Copy</button>
   </div>
